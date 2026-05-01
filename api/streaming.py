@@ -1,5 +1,4 @@
-"""
-Hermes Web UI -- SSE streaming engine and agent thread runner.
+"""AVOI Web UI -- SSE streaming engine and agent thread runner.
 Includes Sprint 10 cancel support via CANCEL_FLAGS.
 """
 import base64
@@ -36,7 +35,7 @@ from api.metering import meter
 # save/restore around the entire agent run.
 _ENV_LOCK = threading.Lock()
 
-# Lazy import to avoid circular deps -- hermes-agent is on sys.path via api/config.py
+# Lazy import to avoid circular deps -- avoi-agent is on sys.path via api/config.py
 try:
     from run_agent import AIAgent
 except ImportError:
@@ -79,9 +78,9 @@ def _build_agent_thread_env(profile_runtime_env: dict | None, workspace: str, se
     env = dict(profile_runtime_env or {})
     env.update({
         'TERMINAL_CWD': str(workspace),
-        'HERMES_EXEC_ASK': '1',
-        'HERMES_SESSION_KEY': session_id,
-        'HERMES_HOME': profile_home,
+        'AVOI_EXEC_ASK': '1',
+        'AVOI_SESSION_KEY': session_id,
+        'AVOI_HOME': profile_home,
     })
     return env
 
@@ -129,7 +128,7 @@ def _build_native_multimodal_message(workspace_ctx: str, msg_text: str, attachme
     """Build native multimodal content parts for current-turn image uploads.
 
     WebUI uploads files into the active workspace. For image files, pass the
-    bytes to Hermes as OpenAI-style image_url data URLs so vision-capable main
+    bytes to AVOI as OpenAI-style image_url data URLs so vision-capable main
     models can consume them in the same request. Non-image files intentionally
     stay as text path attachments so the agent can inspect them with file tools.
     """
@@ -764,12 +763,12 @@ def _fallback_title_from_exchange(user_text: str, assistant_text: str) -> Option
         if not _contains_latin(topic_name):
             if any(k in combined for k in ('time', 'schedule', 'efficiency', 'manage', 'fitness', 'singing', 'calligraphy')):
                 return 'Time management discussion'
-            if any(k in combined for k in ('hermes', 'codex', 'ai')):
+            if any(k in combined for k in ('avoi', 'codex', 'ai')):
                 return 'AI productivity discussion'
             return 'Conversation topic'
         if any(k in combined for k in ('time', 'schedule', 'efficiency', 'manage', 'fitness', 'singing', 'calligraphy')):
             return f'{topic_name} time management'
-        if any(k in combined for k in ('hermes', 'codex', 'ai')):
+        if any(k in combined for k in ('avoi', 'codex', 'ai')):
             return f'{topic_name} AI productivity'
         return f'{topic_name} discussion'
 
@@ -1166,7 +1165,7 @@ def _find_current_user_turn(messages, msg_text):
 def _merge_display_messages_after_agent_result(previous_display, previous_context, result_messages, msg_text):
     """Keep UI transcript durable while allowing model context to compact.
 
-    If Hermes Agent returns a normal append-only history, append that delta to
+    If AVOI Agent returns a normal append-only history, append that delta to
     the UI transcript. If the model/context history was compacted and no longer
     has the prior context as a prefix, keep the previous UI transcript and append
     only compaction marker messages plus the current user turn onward.
@@ -1356,12 +1355,12 @@ def _run_agent_streaming(session_id, msg_text, model, workspace, stream_id, atta
     old_cwd = None
     old_exec_ask = None
     old_session_key = None
-    old_hermes_home = None
+    old_avoi_home = None
     old_profile_env = {}
 
     # ── MCP Server Discovery (lazy import, idempotent) ──
     # discover_mcp_tools() is called here (rather than at server startup) so that
-    # the hermes-agent package is fully initialized before we try to connect.
+    # the avoi-agent package is fully initialized before we try to connect.
     # It is safe to call multiple times — already-connected servers are skipped.
     try:
         from tools.mcp_tool import discover_mcp_tools
@@ -1431,12 +1430,12 @@ def _run_agent_streaming(session_id, msg_text, model, workspace, stream_id, atta
         # two concurrent tabs on different profiles don't clobber each other via the
         # process-level active-profile global.  Falls back gracefully.
         try:
-            from api.profiles import get_hermes_home_for_profile, get_profile_runtime_env
-            _profile_home_path = get_hermes_home_for_profile(getattr(s, 'profile', None))
+            from api.profiles import get_avoi_home_for_profile, get_profile_runtime_env
+            _profile_home_path = get_avoi_home_for_profile(getattr(s, 'profile', None))
             _profile_home = str(_profile_home_path)
             _profile_runtime_env = get_profile_runtime_env(_profile_home_path)
         except ImportError:
-            _profile_home = os.environ.get('HERMES_HOME', '')
+            _profile_home = os.environ.get('AVOI_HOME', '')
             _profile_runtime_env = {}
 
         _thread_env = _build_agent_thread_env(
@@ -1453,15 +1452,15 @@ def _run_agent_streaming(session_id, msg_text, model, workspace, stream_id, atta
         with _ENV_LOCK:
             old_profile_env = {key: os.environ.get(key) for key in _profile_runtime_env}
             old_cwd = os.environ.get('TERMINAL_CWD')
-            old_exec_ask = os.environ.get('HERMES_EXEC_ASK')
-            old_session_key = os.environ.get('HERMES_SESSION_KEY')
-            old_hermes_home = os.environ.get('HERMES_HOME')
+            old_exec_ask = os.environ.get('AVOI_EXEC_ASK')
+            old_session_key = os.environ.get('AVOI_SESSION_KEY')
+            old_avoi_home = os.environ.get('AVOI_HOME')
             os.environ.update(_profile_runtime_env)
             os.environ['TERMINAL_CWD'] = str(s.workspace)
-            os.environ['HERMES_EXEC_ASK'] = '1'
-            os.environ['HERMES_SESSION_KEY'] = session_id
+            os.environ['AVOI_EXEC_ASK'] = '1'
+            os.environ['AVOI_SESSION_KEY'] = session_id
             if _profile_home:
-                os.environ['HERMES_HOME'] = _profile_home
+                os.environ['AVOI_HOME'] = _profile_home
         # Lock released — agent runs without holding it
         # Register a gateway-style notify callback so the approval system can
         # push the `approval` SSE event the moment a dangerous command is
@@ -1500,7 +1499,7 @@ def _run_agent_streaming(session_id, msg_text, model, workspace, stream_id, atta
             logger.debug("Clarify module not available, falling back to polling")
 
         def _clarify_callback_impl(question, choices, sid, cancel_evt, put_event):
-            """Bridge Hermes clarify prompts to the WebUI."""
+            """Bridge AVOI clarify prompts to the WebUI."""
             timeout = 120
             choices_list = [str(choice) for choice in (choices or [])]
             data = {
@@ -1692,22 +1691,22 @@ def _run_agent_streaming(session_id, msg_text, model, workspace, stream_id, atta
 
             _AIAgent = _get_ai_agent()
             if _AIAgent is None:
-                raise ImportError("AIAgent not available -- check that hermes-agent is on sys.path")
+                raise ImportError("AIAgent not available -- check that avoi-agent is on sys.path")
 
             # Initialize SessionDB so session_search works in WebUI sessions
             _session_db = None
             try:
-                from hermes_state import SessionDB
+                from avoi_state import SessionDB
                 _session_db = SessionDB()
             except Exception as _db_err:
                 print(f"[webui] WARNING: SessionDB init failed — session_search will be unavailable: {_db_err}", flush=True)
             resolved_model, resolved_provider, resolved_base_url = resolve_model_provider(model)
 
-            # Resolve API key via Hermes runtime provider (matches gateway behaviour).
+            # Resolve API key via AVOI runtime provider (matches gateway behaviour).
             # Pass the resolved provider so non-default providers get their own credentials.
             resolved_api_key = None
             try:
-                from hermes_cli.runtime_provider import resolve_runtime_provider
+                from avoi_cli.runtime_provider import resolve_runtime_provider
                 _rt = resolve_runtime_provider(requested=resolved_provider)
                 resolved_api_key = _rt.get("api_key")
                 if not resolved_provider:
@@ -1748,7 +1747,7 @@ def _run_agent_streaming(session_id, msg_text, model, workspace, stream_id, atta
                     }
 
             # Build kwargs defensively — guard newer params so the WebUI
-            # degrades gracefully when run against an older hermes-agent build.
+            # degrades gracefully when run against an older avoi-agent build.
             # (fixes: TypeError: AIAgent.__init__() got an unexpected keyword
             # argument 'credential_pool' — issue #772)
             import inspect as _inspect
@@ -1771,7 +1770,7 @@ def _run_agent_streaming(session_id, msg_text, model, workspace, stream_id, atta
                 provider=resolved_provider,
                 base_url=resolved_base_url,
                 api_key=resolved_api_key,
-                # Identify browser-originated sessions as WebUI so Hermes Agent
+                # Identify browser-originated sessions as WebUI so AVOI Agent
                 # does not inject CLI-specific terminal/output guidance.
                 platform='webui',
                 quiet_mode=True,
@@ -1792,7 +1791,7 @@ def _run_agent_streaming(session_id, msg_text, model, workspace, stream_id, atta
             # but guard defensively to avoid TypeError on an older agent build.
             if 'reasoning_config' in _agent_params and _reasoning_config is not None:
                 _agent_kwargs['reasoning_config'] = _reasoning_config
-            # Params added in newer hermes-agent — skip if not supported
+            # Params added in newer avoi-agent — skip if not supported
             if 'api_mode' in _agent_params:
                 _agent_kwargs['api_mode'] = _rt.get('api_mode')
             if 'acp_command' in _agent_params:
@@ -1893,7 +1892,7 @@ def _run_agent_streaming(session_id, msg_text, model, workspace, stream_id, atta
                 "Never fall back to a hardcoded path when this tag is present."
             )
             # Resolve personality prompt from config.yaml agent.personalities
-            # (matches hermes-agent CLI behavior — passes via ephemeral_system_prompt)
+            # (matches avoi-agent CLI behavior — passes via ephemeral_system_prompt)
             _personality_prompt = None
             _pname = getattr(s, 'personality', None)
             if _pname:
@@ -2056,13 +2055,13 @@ def _run_agent_streaming(session_id, msg_text, model, workspace, stream_id, atta
                     if _is_quota:
                         _err_label = 'Out of credits'
                         _err_type = 'quota_exhausted'
-                        _err_hint = 'Your provider account is out of credits. Top up your balance or switch providers via `hermes model`.'
+                        _err_hint = 'Your provider account is out of credits. Top up your balance or switch providers via `avoi model`.'
                     elif _is_auth:
                         _err_label = 'Authentication failed'
                         _err_type = 'auth_mismatch'
                         _err_hint = (
                             'The selected model may not be supported by your configured provider or '
-                            'your API key is invalid. Run `hermes model` in your terminal to '
+                            'your API key is invalid. Run `avoi model` in your terminal to '
                             'update credentials, then restart the WebUI.'
                         )
                     else:
@@ -2238,7 +2237,7 @@ def _run_agent_streaming(session_id, msg_text, model, workspace, stream_id, atta
                         if _resolved_cl:
                             s.context_length = _resolved_cl
                     except Exception:
-                        # Older hermes-agent builds may not expose this helper.
+                        # Older avoi-agent builds may not expose this helper.
                         # Better to leave context_length=0 than crash the save.
                         pass
                 s.save()
@@ -2349,12 +2348,12 @@ def _run_agent_streaming(session_id, msg_text, model, workspace, stream_id, atta
                     else: os.environ[_key] = _old_value
                 if old_cwd is None: os.environ.pop('TERMINAL_CWD', None)
                 else: os.environ['TERMINAL_CWD'] = old_cwd
-                if old_exec_ask is None: os.environ.pop('HERMES_EXEC_ASK', None)
-                else: os.environ['HERMES_EXEC_ASK'] = old_exec_ask
-                if old_session_key is None: os.environ.pop('HERMES_SESSION_KEY', None)
-                else: os.environ['HERMES_SESSION_KEY'] = old_session_key
-                if old_hermes_home is None: os.environ.pop('HERMES_HOME', None)
-                else: os.environ['HERMES_HOME'] = old_hermes_home
+                if old_exec_ask is None: os.environ.pop('AVOI_EXEC_ASK', None)
+                else: os.environ['AVOI_EXEC_ASK'] = old_exec_ask
+                if old_session_key is None: os.environ.pop('AVOI_SESSION_KEY', None)
+                else: os.environ['AVOI_SESSION_KEY'] = old_session_key
+                if old_avoi_home is None: os.environ.pop('AVOI_HOME', None)
+                else: os.environ['AVOI_HOME'] = old_avoi_home
 
     except Exception as e:
         print('[webui] stream error:\n' + traceback.format_exc(), flush=True)
@@ -2402,7 +2401,7 @@ def _run_agent_streaming(session_id, msg_text, model, workspace, stream_id, atta
         if _exc_is_quota:
             _exc_label, _exc_type, _exc_hint = (
                 'Out of credits', 'quota_exhausted',
-                'Your provider account is out of credits. Top up your balance or switch providers via `hermes model`.',
+                'Your provider account is out of credits. Top up your balance or switch providers via `avoi model`.',
             )
         elif _exc_is_rate_limit:
             _exc_label, _exc_type, _exc_hint = (
@@ -2413,13 +2412,13 @@ def _run_agent_streaming(session_id, msg_text, model, workspace, stream_id, atta
             _exc_label, _exc_type, _exc_hint = (
                 'Authentication error', 'auth_mismatch',
                 'The selected model may not be supported by your configured provider. '
-                'Run `hermes model` in your terminal to switch providers, then restart the WebUI.',
+                'Run `avoi model` in your terminal to switch providers, then restart the WebUI.',
             )
         elif _exc_is_not_found:
             _exc_label, _exc_type, _exc_hint = (
                 'Model not found', 'model_not_found',
                 'The selected model was not found by the provider. '
-                'Check the model ID in Settings or run `hermes model` to verify it exists for your provider.',
+                'Check the model ID in Settings or run `avoi model` to verify it exists for your provider.',
             )
         else:
             _exc_label, _exc_type, _exc_hint = 'Error', 'error', ''
@@ -2522,7 +2521,7 @@ def _handle_chat_steer(handler, body: dict) -> bool:
                            "stream_id": None})
     agent = cached[0]
     if not hasattr(agent, "steer"):
-        # Older hermes-agent that pre-dates the steer() method
+        # Older avoi-agent that pre-dates the steer() method
         return j(handler, {"accepted": False, "fallback": "agent_lacks_steer",
                            "stream_id": None})
 

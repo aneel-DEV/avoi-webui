@@ -1,5 +1,5 @@
 """
-Hermes Web UI -- HTTP helper functions.
+AVOI Web UI -- HTTP helper functions.
 """
 import json as _json
 import re as _re
@@ -110,9 +110,9 @@ MAX_BODY_BYTES = 20 * 1024 * 1024  # 20MB limit for non-upload POST bodies
 # ── Credential redaction ──────────────────────────────────────────────────────
 
 def _build_redact_fn():
-    """Return a redactor backed by hermes-agent plus local fallback patterns."""
+    """Return a redactor backed by avoi-agent plus local fallback patterns."""
     # Minimal fallback covering the most common credential prefixes.
-    # Keep this active even when hermes-agent is importable so API responses do
+    # Keep this active even when avoi-agent is importable so API responses do
     # not regress if the agent redactor misses a token shape.
     _CRED_RE = _re.compile(
         r"(?<![A-Za-z0-9_-])("
@@ -163,7 +163,7 @@ def _build_redact_fn():
         # WebUI API responses are a hard safety boundary — pass force=True so the
         # agent's broader patterns (Stripe sk_live_, Google AIza…, JWT eyJ…, DB
         # connection strings, Telegram bot tokens) run regardless of the user's
-        # HERMES_REDACT_SECRETS opt-in. The local fallback then handles the
+        # AVOI_REDACT_SECRETS opt-in. The local fallback then handles the
         # common short-prefix shapes the agent omits (ghp_, sk-, hf_, AKIA).
         return _fallback_redact(redact_sensitive_text(text, force=True))
 
@@ -214,11 +214,11 @@ def read_body(handler) -> dict:
 
 # ── Profile cookie helpers (issue #798) ─────────────────────────────────────
 
-PROFILE_COOKIE_NAME = 'hermes_profile'
+PROFILE_COOKIE_NAME = 'avoi_profile'
 
 
 def get_profile_cookie(handler) -> str | None:
-    """Extract the hermes_profile cookie value from the request, or None."""
+    """Extract the avoi_profile cookie value from the request, or None."""
     cookie_header = handler.headers.get('Cookie', '')
     if not cookie_header:
         return None
@@ -239,7 +239,7 @@ def get_profile_cookie(handler) -> str | None:
 
 
 def build_profile_cookie(name: str) -> str:
-    """Build a Set-Cookie header value for the hermes_profile cookie.
+    """Build a Set-Cookie header value for the avoi_profile cookie.
 
     Always persist the selected profile in the cookie, including 'default'.
     Clearing the cookie causes the backend to fall back to process-global

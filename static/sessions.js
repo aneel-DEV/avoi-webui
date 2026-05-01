@@ -15,9 +15,9 @@ const ICONS={
 // before the first request completes (#1060).
 let _loadingSessionId = null;
 
-const SESSION_VIEWED_COUNTS_KEY = 'hermes-session-viewed-counts';
-const SESSION_COMPLETION_UNREAD_KEY = 'hermes-session-completion-unread';
-const SESSION_OBSERVED_STREAMING_KEY = 'hermes-session-observed-streaming';
+const SESSION_VIEWED_COUNTS_KEY = 'avoi-session-viewed-counts';
+const SESSION_COMPLETION_UNREAD_KEY = 'avoi-session-completion-unread';
+const SESSION_OBSERVED_STREAMING_KEY = 'avoi-session-observed-streaming';
 let _sessionViewedCounts = null;
 let _sessionCompletionUnread = null;
 let _sessionObservedStreaming = null;
@@ -281,7 +281,7 @@ async function newSession(flash){
   S.session=data.session;S.messages=data.session.messages||[];
   S.lastUsage={...(data.session.last_usage||{})};
   if(flash)S.session._flash=true;
-  localStorage.setItem('hermes-webui-session',S.session.session_id);
+  localStorage.setItem('avoi-webui-session',S.session.session_id);
   _setSessionViewedCount(S.session.session_id, S.session.message_count || 0);
   // Sync chat-header dropdown to the session's model so the UI reflects
   // the default model the server actually used (#872).
@@ -341,8 +341,8 @@ async function loadSession(sid){
         // If this 404 was for the saved active-session ID (not a click-into request),
         // wipe the stale localStorage value and rethrow so boot can fall through to
         // the empty-state instead of sticking to a broken "Session not available" view.
-        if(!currentSid&&localStorage.getItem('hermes-webui-session')===sid){
-          localStorage.removeItem('hermes-webui-session');
+        if(!currentSid&&localStorage.getItem('avoi-webui-session')===sid){
+          localStorage.removeItem('avoi-webui-session');
           if (_loadingSessionId === sid) _loadingSessionId = null;
           throw e;
         }
@@ -361,7 +361,7 @@ async function loadSession(sid){
   S.lastUsage={...(data.session.last_usage||{})};
   _setSessionViewedCount(S.session.session_id, Number(data.session.message_count || 0));
   _clearSessionCompletionUnread(S.session.session_id);
-  localStorage.setItem('hermes-webui-session',S.session.session_id);
+  localStorage.setItem('avoi-webui-session',S.session.session_id);
 
   const activeStreamId=S.session.active_stream_id||null;
 
@@ -424,7 +424,7 @@ async function loadSession(sid){
     // Restore any queued message that survived page refresh via sessionStorage.
     if(typeof queueSessionMessage==='function'){
       try{
-        const _storedQ=sessionStorage.getItem('hermes-queue-'+sid);
+        const _storedQ=sessionStorage.getItem('avoi-queue-'+sid);
         if(_storedQ){
           const _entries=JSON.parse(_storedQ);
           if(Array.isArray(_entries)&&_entries.length){
@@ -440,15 +440,15 @@ async function loadSession(sid){
                 if(typeof autoResize==='function') autoResize();
                 if(typeof showToast==='function') showToast((_fresh.length>1?`${_fresh.length} queued messages restored (showing first)`:'Queued message restored')+' — review and send when ready');
               }
-              sessionStorage.removeItem('hermes-queue-'+sid);
+              sessionStorage.removeItem('avoi-queue-'+sid);
             } else {
-              sessionStorage.removeItem('hermes-queue-'+sid);
+              sessionStorage.removeItem('avoi-queue-'+sid);
             }
           } else {
-            sessionStorage.removeItem('hermes-queue-'+sid);
+            sessionStorage.removeItem('avoi-queue-'+sid);
           }
         }
-      }catch(_){sessionStorage.removeItem('hermes-queue-'+sid);}
+      }catch(_){sessionStorage.removeItem('avoi-queue-'+sid);}
     }
 
     // Reconstruct tool calls from message metadata, or fall back to session-level summary.
@@ -718,7 +718,7 @@ function _renderBatchActionBar(){
     if(!ok)return;
     try{await Promise.all(ids.map(sid=>api('/api/session/delete',{method:'POST',body:JSON.stringify({session_id:sid})})));
       if(S.session&&ids.includes(S.session.session_id)){
-        S.session=null;S.messages=[];S.entries=[];localStorage.removeItem('hermes-webui-session');
+        S.session=null;S.messages=[];S.entries=[];localStorage.removeItem('avoi-webui-session');
         const remaining=await api('/api/sessions');
         if(remaining.sessions&&remaining.sessions.length){await loadSession(remaining.sessions[0].session_id);}
         else{$('msgInner').innerHTML='';$('emptyState').style.display='';}
@@ -1355,8 +1355,8 @@ function renderSessionListFromCache(){
   const now=_serverNowMs();
   // Collapse state persisted in localStorage
   let _groupCollapsed={};
-  try{_groupCollapsed=JSON.parse(localStorage.getItem('hermes-date-groups-collapsed')||'{}');}catch(e){}
-  const _saveCollapsed=()=>{try{localStorage.setItem('hermes-date-groups-collapsed',JSON.stringify(_groupCollapsed));}catch(e){}};
+  try{_groupCollapsed=JSON.parse(localStorage.getItem('avoi-date-groups-collapsed')||'{}');}catch(e){}
+  const _saveCollapsed=()=>{try{localStorage.setItem('avoi-date-groups-collapsed',JSON.stringify(_groupCollapsed));}catch(e){}};
   // Group sessions by date
   const groups=[];
   let curLabel=null,curItems=[];
@@ -1642,7 +1642,7 @@ function renderSessionListFromCache(){
 }
 
 async function _handleActiveSessionStorageEvent(e){
-  if(!e || e.key !== 'hermes-webui-session') return;
+  if(!e || e.key !== 'avoi-webui-session') return;
   const sid = e.newValue;
   if(!sid || (S.session && S.session.session_id === sid)) return;
   if(S.busy){
@@ -1669,13 +1669,13 @@ async function deleteSession(sid){
   }catch(e){setStatus(`Delete failed: ${e.message}`);return;}
   if(S.session&&S.session.session_id===sid){
     S.session=null;S.messages=[];S.entries=[];
-    localStorage.removeItem('hermes-webui-session');
+    localStorage.removeItem('avoi-webui-session');
     // load the most recent remaining session, or show blank if none left
     const remaining=await api('/api/sessions');
     if(remaining.sessions&&remaining.sessions.length){
       await loadSession(remaining.sessions[0].session_id);
     }else{
-      const _tt=$('topbarTitle');if(_tt)_tt.textContent=window._botName||'Hermes';
+      const _tt=$('topbarTitle');if(_tt)_tt.textContent=window._botName||'AVOI';
       const _tm=$('topbarMeta');if(_tm)_tm.textContent='Start a new conversation';
       $('msgInner').innerHTML='';
       $('emptyState').style.display='';

@@ -1,5 +1,4 @@
-"""
-Hermes Web UI -- Route handlers for GET and POST endpoints.
+"""AVOI Web UI -- Route handlers for GET and POST endpoints.
 Extracted from server.py (Sprint 11) so server.py is a thin shell.
 """
 
@@ -127,7 +126,7 @@ _PROVIDER_ALIASES = {
 }
 
 # OpenAI-compatible /v1/models endpoints for live model discovery.
-# Used as fallback when hermes_cli.provider_model_ids() is unavailable or
+# Used as fallback when avoi_cli.provider_model_ids() is unavailable or
 # returns [] for a provider (#871).  Kept at module level so the dict is
 # built once, not reconstructed per request.
 _OPENAI_COMPAT_ENDPOINTS = {
@@ -142,7 +141,7 @@ _OPENAI_COMPAT_ENDPOINTS = {
 # NOTE: "openai-codex" is excluded because it maps to the same endpoint as
 # the base "openai" provider (api.openai.com/v1).  When both are configured
 # the openai provider is already wired through provider_model_ids(); codex-
-# specific model filtering happens downstream in hermes_cli.
+# specific model filtering happens downstream in avoi_cli.
 #
 _LIVE_MODELS_CACHE_TTL = 60.0
 _LIVE_MODELS_CACHE: dict[tuple[str, str], tuple[float, dict]] = {}
@@ -214,7 +213,7 @@ from api.config import (
     SESSION_AGENT_LOCKS_LOCK,
     load_settings,
     save_settings,
-    set_hermes_default_model,
+    set_avoi_default_model,
     get_reasoning_status,
     set_reasoning_display,
     set_reasoning_effort,
@@ -275,12 +274,12 @@ def _ports_match(origin_scheme: str, origin_port: str | None, allowed_port: str 
 
 
 def _allowed_public_origins() -> set[str]:
-    """Parse HERMES_WEBUI_ALLOWED_ORIGINS env var (comma-separated) into a set.
+    """Parse AVOI_WEBUI_ALLOWED_ORIGINS env var (comma-separated) into a set.
 
     Each entry must include the scheme, e.g. https://myapp.example.com:8000.
     Entries without a scheme are silently skipped and a warning is printed.
     """
-    raw = os.getenv('HERMES_WEBUI_ALLOWED_ORIGINS', '')
+    raw = os.getenv('AVOI_WEBUI_ALLOWED_ORIGINS', '')
     result = set()
     for value in raw.split(','):
         value = value.strip().rstrip('/').lower()
@@ -289,7 +288,7 @@ def _allowed_public_origins() -> set[str]:
         if not (value.startswith('http://') or value.startswith('https://')):
             import sys
             print(
-                f"[webui] WARNING: HERMES_WEBUI_ALLOWED_ORIGINS entry {value!r} is missing "
+                f"[webui] WARNING: AVOI_WEBUI_ALLOWED_ORIGINS entry {value!r} is missing "
                 f"the scheme (expected https://hostname or http://hostname). Entry ignored.",
                 flush=True, file=sys.stderr,
             )
@@ -860,7 +859,7 @@ def handle_get(handler, parsed) -> bool:
 
     if parsed.path == "/login":
         _settings = load_settings()
-        _bn = _html.escape(_settings.get("bot_name") or "Hermes")
+        _bn = _html.escape(_settings.get("bot_name") or "AVOI")
         _lang = _settings.get("language", "en")
         _login_strings = _LOGIN_LOCALE[
             _resolve_login_locale_key(_lang)
@@ -995,7 +994,7 @@ def handle_get(handler, parsed) -> bool:
     if parsed.path == "/api/session":
         import time as _time
         _t0 = _time.monotonic()
-        _debug_slow = os.environ.get("HERMES_DEBUG_SLOW", "")
+        _debug_slow = os.environ.get("AVOI_DEBUG_SLOW", "")
         query = parse_qs(parsed.query)
         sid = query.get("session_id", [""])[0]
         if not sid:
@@ -1216,7 +1215,7 @@ def handle_get(handler, parsed) -> bool:
 
     if parsed.path == "/api/personalities":
         # Read personalities from config.yaml agent.personalities section
-        # (matches hermes-agent CLI behavior, not filesystem SOUL.md approach)
+        # (matches avoi-agent CLI behavior, not filesystem SOUL.md approach)
         from api.config import reload_config as _reload_cfg
 
         _reload_cfg()  # pick up config.yaml changes without server restart
@@ -1417,11 +1416,11 @@ def handle_get(handler, parsed) -> bool:
         )
 
     if parsed.path == "/api/profile/active":
-        from api.profiles import get_active_profile_name, get_active_hermes_home
+        from api.profiles import get_active_profile_name, get_active_avoi_home
 
         return j(
             handler,
-            {"name": get_active_profile_name(), "path": str(get_active_hermes_home())},
+            {"name": get_active_profile_name(), "path": str(get_active_avoi_home())},
         )
 
     # ── MCP Servers (GET) ──
@@ -1462,7 +1461,7 @@ def handle_post(handler, parsed) -> bool:
 
     if parsed.path == "/api/default-model":
         try:
-            return j(handler, set_hermes_default_model(body.get("model")))
+            return j(handler, set_avoi_default_model(body.get("model")))
         except ValueError as e:
             return bad(handler, str(e))
         except RuntimeError as e:
@@ -1563,7 +1562,7 @@ def handle_post(handler, parsed) -> bool:
         except KeyError:
             return bad(handler, "Session not found", 404)
         # Resolve personality from config.yaml agent.personalities section
-        # (matches hermes-agent CLI behavior)
+        # (matches avoi-agent CLI behavior)
         prompt = ""
         if name:
             from api.config import reload_config as _reload_cfg2
@@ -1579,7 +1578,7 @@ def handle_post(handler, parsed) -> bool:
                     handler, f'Personality "{name}" not found in config.yaml', 404
                 )
             value = raw_personalities[name]
-            # Resolve prompt using the same logic as hermes-agent cli.py
+            # Resolve prompt using the same logic as avoi-agent cli.py
             if isinstance(value, dict):
                 parts = [value.get("system_prompt", "") or value.get("prompt", "")]
                 if value.get("tone"):
@@ -2019,7 +2018,7 @@ def handle_post(handler, parsed) -> bool:
         )
 
         if "bot_name" in body:
-            body["bot_name"] = (str(body["bot_name"]) or "").strip() or "Hermes"
+            body["bot_name"] = (str(body["bot_name"]) or "").strip() or "AVOI"
 
         auth_enabled_before = is_auth_enabled()
         current_cookie = parse_cookie(handler)
@@ -2067,11 +2066,11 @@ def handle_post(handler, parsed) -> bool:
         # even when the user accesses via localhost:8787 on the host.
         # Behind a reverse proxy (nginx/Caddy/Traefik) or SSH tunnel, X-Forwarded-For
         # carries the real origin IP — read it first before falling back to the raw socket addr.
-        # HERMES_WEBUI_ONBOARDING_OPEN=1 lets operators on remote servers explicitly bypass
+        # AVOI_WEBUI_ONBOARDING_OPEN=1 lets operators on remote servers explicitly bypass
         # the check when they control network access themselves (e.g. firewall + VPN).
         from api.auth import is_auth_enabled
         import os as _os
-        if not is_auth_enabled() and not _os.getenv("HERMES_WEBUI_ONBOARDING_OPEN"):
+        if not is_auth_enabled() and not _os.getenv("AVOI_WEBUI_ONBOARDING_OPEN"):
             import ipaddress
             try:
                 # Prefer forwarded headers set by reverse proxies
@@ -2084,7 +2083,7 @@ def handle_post(handler, parsed) -> bool:
             except ValueError:
                 is_local = False
             if not is_local:
-                return bad(handler, "Onboarding setup is only available from local networks when auth is not enabled. To bypass this on a remote server, set HERMES_WEBUI_ONBOARDING_OPEN=1.", 403)
+                return bad(handler, "Onboarding setup is only available from local networks when auth is not enabled. To bypass this on a remote server, set AVOI_WEBUI_ONBOARDING_OPEN=1.", 403)
         try:
             return j(handler, apply_onboarding_setup(body))
         except ValueError as e:
@@ -2350,7 +2349,7 @@ def _handle_session_export(handler, parsed):
     handler.send_response(200)
     handler.send_header("Content-Type", "application/json; charset=utf-8")
     handler.send_header(
-        "Content-Disposition", f'attachment; filename="hermes-{sid}.json"'
+        "Content-Disposition", f'attachment; filename="avoi-{sid}.json"'
     )
     handler.send_header("Content-Length", str(len(payload.encode("utf-8"))))
     handler.send_header("Cache-Control", "no-store")
@@ -2773,7 +2772,7 @@ def _handle_media(handler, parsed):
     """Serve a local file by absolute path for inline display in the chat.
 
     Security:
-    - Path must resolve to an allowed root (hermes home, /tmp, common dirs)
+    - Path must resolve to an allowed root (avoi home, /tmp, common dirs)
     - Auth-gated when auth is enabled
     - Only image MIME types are served inline; all others force download
     - SVG always served as attachment (XSS risk)
@@ -2782,7 +2781,7 @@ def _handle_media(handler, parsed):
     import os as _os
     from api.auth import is_auth_enabled, parse_cookie, verify_session
     _HOME = Path(_os.path.expanduser("~"))
-    _HERMES_HOME = Path(_os.getenv("HERMES_HOME", str(_HOME / ".hermes"))).expanduser()
+    _AVOI_HOME = Path(_os.getenv("AVOI_HOME", str(_HOME / ".avoi"))).expanduser()
 
     # Auth check
     if is_auth_enabled():
@@ -2805,13 +2804,13 @@ def _handle_media(handler, parsed):
     except Exception:
         return bad(handler, "Invalid path", 400)
 
-    # Allowed roots: hermes home, /tmp, and active workspace.
+    # Allowed roots: avoi home, /tmp, and active workspace.
     # Intentionally NOT the entire home dir — that would expose ~/.ssh,
     # ~/.aws, browser profiles, etc. to any authenticated user.
     allowed_roots = [
-        _HERMES_HOME.resolve(),
+        _AVOI_HOME.resolve(),
         Path("/tmp").resolve(),
-        (_HOME / ".hermes").resolve(),
+        (_HOME / ".avoi").resolve(),
     ]
     # Also allow the active workspace directory (where screenshots land)
     try:
@@ -3145,7 +3144,7 @@ def _handle_live_models(handler, parsed):
         # The browser sends whatever active_provider the static endpoint returned;
         # without normalization, provider_model_ids() misses the alias and returns [].
         # Uses the WebUI-owned table (api/config._resolve_provider_alias) which
-        # works even when hermes_cli is not on sys.path.
+        # works even when avoi_cli is not on sys.path.
         from api.config import _resolve_provider_alias
         provider = _resolve_provider_alias(provider)
 
@@ -3165,11 +3164,11 @@ def _handle_live_models(handler, parsed):
             import sys as _sys
             import os as _os
             _agent_dir = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))),
-                                       "..", "..", ".hermes", "hermes-agent")
+                                       "..", "..", ".avoi", "avoi-agent")
             _agent_dir = _os.path.normpath(_agent_dir)
             if _agent_dir not in _sys.path:
                 _sys.path.insert(0, _agent_dir)
-            from hermes_cli.models import provider_model_ids as _pmi
+            from avoi_cli.models import provider_model_ids as _pmi
             ids = _pmi(provider)
         except Exception as _import_err:
             logger.debug("provider_model_ids import failed for %s: %s", provider, _import_err)
@@ -3390,11 +3389,11 @@ def _handle_cron_recent(handler, parsed):
 
 def _handle_memory_read(handler):
     try:
-        from api.profiles import get_active_hermes_home
+        from api.profiles import get_active_avoi_home
 
-        mem_dir = get_active_hermes_home() / "memories"
+        mem_dir = get_active_avoi_home() / "memories"
     except ImportError:
-        mem_dir = Path.home() / ".hermes" / "memories"
+        mem_dir = Path.home() / ".avoi" / "memories"
     mem_file = mem_dir / "MEMORY.md"
     user_file = mem_dir / "USER.md"
     memory = (
@@ -3640,7 +3639,7 @@ def _normalize_chat_attachments(raw_attachments):
 
     Older clients send a list of filenames. Newer clients send upload result
     objects containing name/path/mime/size so image attachments can be supplied
-    to Hermes as native multimodal inputs for the current turn.
+    to AVOI as native multimodal inputs for the current turn.
     """
     normalized = []
     if not isinstance(raw_attachments, list):
@@ -3683,10 +3682,10 @@ def _handle_chat_sync(handler, body):
     with _ENV_LOCK:
         old_cwd = os.environ.get("TERMINAL_CWD")
         os.environ["TERMINAL_CWD"] = str(workspace)
-        old_exec_ask = os.environ.get("HERMES_EXEC_ASK")
-        old_session_key = os.environ.get("HERMES_SESSION_KEY")
-        os.environ["HERMES_EXEC_ASK"] = "1"
-        os.environ["HERMES_SESSION_KEY"] = s.session_id
+        old_exec_ask = os.environ.get("AVOI_EXEC_ASK")
+        old_session_key = os.environ.get("AVOI_SESSION_KEY")
+        os.environ["AVOI_EXEC_ASK"] = "1"
+        os.environ["AVOI_SESSION_KEY"] = s.session_id
     try:
         from run_agent import AIAgent
 
@@ -3694,10 +3693,10 @@ def _handle_chat_sync(handler, body):
             from api.config import resolve_model_provider
 
             _model, _provider, _base_url = resolve_model_provider(s.model)
-            # Resolve API key via Hermes runtime provider (matches gateway behaviour)
+            # Resolve API key via AVOI runtime provider (matches gateway behaviour)
             _api_key = None
             try:
-                from hermes_cli.runtime_provider import resolve_runtime_provider
+                from avoi_cli.runtime_provider import resolve_runtime_provider
 
                 _rt = resolve_runtime_provider(requested=_provider)
                 _api_key = _rt.get("api_key")
@@ -3716,7 +3715,7 @@ def _handle_chat_sync(handler, body):
                 provider=_provider,
                 base_url=_base_url,
                 api_key=_api_key,
-                # Identify browser-originated sessions as WebUI so Hermes Agent
+                # Identify browser-originated sessions as WebUI so AVOI Agent
                 # does not inject CLI-specific terminal/output guidance.
                 platform="webui",
                 quiet_mode=True,
@@ -3759,13 +3758,13 @@ def _handle_chat_sync(handler, body):
             else:
                 os.environ["TERMINAL_CWD"] = old_cwd
             if old_exec_ask is None:
-                os.environ.pop("HERMES_EXEC_ASK", None)
+                os.environ.pop("AVOI_EXEC_ASK", None)
             else:
-                os.environ["HERMES_EXEC_ASK"] = old_exec_ask
+                os.environ["AVOI_EXEC_ASK"] = old_exec_ask
             if old_session_key is None:
-                os.environ.pop("HERMES_SESSION_KEY", None)
+                os.environ.pop("AVOI_SESSION_KEY", None)
             else:
-                os.environ["HERMES_SESSION_KEY"] = old_session_key
+                os.environ["AVOI_SESSION_KEY"] = old_session_key
     with _get_session_agent_lock(s.session_id):
         _result_messages = result.get("messages") or _previous_context_messages
         _next_context_messages = _restore_reasoning_metadata(
@@ -4353,7 +4352,7 @@ def _handle_session_compress(handler, body):
                 )
 
         import api.config as _cfg
-        import hermes_cli.runtime_provider as _runtime_provider
+        import avoi_cli.runtime_provider as _runtime_provider
         import run_agent as _run_agent
 
         resolved_model, resolved_provider, resolved_base_url = _cfg.resolve_model_provider(s.model)
@@ -4384,7 +4383,7 @@ def _handle_session_compress(handler, body):
             provider=resolved_provider,
             base_url=resolved_base_url,
             api_key=resolved_api_key,
-            # Identify browser-originated sessions as WebUI so Hermes Agent
+            # Identify browser-originated sessions as WebUI so AVOI Agent
             # does not inject CLI-specific terminal/output guidance.
             platform="webui",
             quiet_mode=True,
@@ -4499,11 +4498,11 @@ def _handle_memory_write(handler, body):
     except ValueError as e:
         return bad(handler, str(e))
     try:
-        from api.profiles import get_active_hermes_home
+        from api.profiles import get_active_avoi_home
 
-        mem_dir = get_active_hermes_home() / "memories"
+        mem_dir = get_active_avoi_home() / "memories"
     except ImportError:
-        mem_dir = Path.home() / ".hermes" / "memories"
+        mem_dir = Path.home() / ".avoi" / "memories"
     mem_dir.mkdir(parents=True, exist_ok=True)
     section = body["section"]
     if section == "memory":

@@ -1,1 +1,1 @@
-"""Hermes Web UI -- API modules."""
+"""AVOI Web UI -- API modules."""

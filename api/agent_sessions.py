@@ -1,4 +1,4 @@
-"""Shared helpers for reading Hermes Agent sessions from state.db."""
+"""Shared helpers for reading AVOI Agent sessions from state.db."""
 import logging
 import sqlite3
 from pathlib import Path
@@ -27,7 +27,7 @@ SOURCE_LABELS = {
 
 
 def normalize_agent_session_source(raw_source: str | None) -> dict:
-    """Return stable source metadata for Hermes Agent session rows.
+    """Return stable source metadata for AVOI Agent session rows.
 
     ``sessions.source`` is an Agent-level raw value. WebUI needs a smaller,
     durable contract so routes, SSE snapshots, and future sidebar policies do
@@ -71,7 +71,7 @@ def _optional_col(name: str, columns: set[str], fallback: str = "NULL") -> str:
 
 
 def _is_compression_continuation(parent: dict | None, child: dict) -> bool:
-    """Mirror Hermes Agent's compression-child guard.
+    """Mirror AVOI Agent's compression-child guard.
 
     A child is a continuation only when the parent ended because of compression
     and the child started after that compression boundary. Plain parent/child
@@ -186,14 +186,14 @@ def read_importable_agent_session_rows(
 ) -> list[dict]:
     """Return non-WebUI agent sessions projected as importable conversations.
 
-    Hermes Agent can create rows in ``state.db.sessions`` before a session has
+    AVOI Agent can create rows in ``state.db.sessions`` before a session has
     any messages, and long conversations can be split into compression-linked
     rows. WebUI cannot import empty rows and should not show compression
     segments as separate conversations, so both the regular ``/api/sessions``
     path and the gateway SSE watcher use this shared projection.
 
     By default, omit background/internal sources such as ``cron`` from the WebUI
-    sidebar. This mirrors Hermes Agent CLI's session-list behaviour: interactive
+    sidebar. This mirrors AVOI Agent CLI's session-list behaviour: interactive
     views should stay focused on user-facing conversations, while callers that
     need a source-specific diagnostic view can opt out by passing
     ``exclude_sources=None``.
@@ -207,15 +207,15 @@ def read_importable_agent_session_rows(
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
 
-        # Older Hermes Agent versions may not have source tracking. Without a
+        # Older AVOI Agent versions may not have source tracking. Without a
         # source column we cannot safely distinguish WebUI rows from agent rows.
         cur.execute("PRAGMA table_info(sessions)")
         session_cols = {row[1] for row in cur.fetchall()}
         if 'source' not in session_cols:
             log.warning(
                 "agent session listing skipped: state.db at %s has no 'source' column "
-                "(older hermes-agent?). Agent sessions unavailable. "
-                "Upgrade hermes-agent to fix this.",
+                "(older avoi-agent?). Agent sessions unavailable. "
+                "Upgrade avoi-agent to fix this.",
                 db_path,
             )
             return []
@@ -261,7 +261,7 @@ def read_importable_agent_session_rows(
 def read_session_lineage_metadata(db_path: Path, session_ids: list[str] | set[str]) -> dict[str, dict]:
     """Return compression-lineage metadata for known WebUI sidebar sessions.
 
-    WebUI sessions are persisted as JSON files, but Hermes Agent also mirrors
+    WebUI sessions are persisted as JSON files, but AVOI Agent also mirrors
     them into ``state.db.sessions`` for insights/session history. Compression
     and cross-surface continuation create parent chains there. ``/api/sessions``
     needs to surface that lineage to the sidebar so client-side collapse can

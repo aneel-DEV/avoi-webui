@@ -1,4 +1,4 @@
-"""Hermes Web UI -- provider management endpoints.
+"""AVOI Web UI -- provider management endpoints.
 
 Provides CRUD operations for configuring provider API keys post-onboarding.
 Closes #586 (allow provider key update) and part of #604 (model picker
@@ -50,7 +50,7 @@ _PROVIDER_ENV_VAR: dict[str, str] = {
 }
 
 # Providers that use OAuth or token flows — their credentials are managed
-# through the Hermes CLI, not via API keys.  The WebUI cannot set these.
+# through the AVOI CLI, not via API keys.  The WebUI cannot set these.
 _OAUTH_PROVIDERS = frozenset({
     "copilot",
     "copilot-acp",
@@ -62,13 +62,13 @@ _OAUTH_PROVIDERS = frozenset({
 # SECTION: Helper functions
 
 
-def _get_hermes_home() -> Path:
-    """Return the active Hermes home directory."""
+def _get_avoi_home() -> Path:
+    """Return the active AVOI home directory."""
     try:
-        from api.profiles import get_active_hermes_home
-        return get_active_hermes_home()
+        from api.profiles import get_active_avoi_home
+        return get_active_avoi_home()
     except ImportError:
-        return Path.home() / ".hermes"
+        return Path.home() / ".avoi"
 
 
 def _load_env_file(env_path: Path) -> dict[str, str]:
@@ -159,7 +159,7 @@ def _write_env_file(env_path: Path, updates: dict[str, str | None]) -> None:
             content += "\n"
         # Atomic write via tempfile + os.replace so cross-process readers
         # (Telegram bot, CLI) never see a half-truncated file.  The shared
-        # ``~/.hermes/.env`` is also written by ``hermes_cli.config.save_env_value``
+        # ``~/.avoi/.env`` is also written by ``avoi_cli.config.save_env_value``
         # using the same atomic pattern; matching it here closes the
         # cross-process leg of #1164 (within-process is covered by _ENV_LOCK).
         _mode = _stat.S_IRUSR | _stat.S_IWUSR  # 0o600
@@ -190,7 +190,7 @@ def _provider_has_key(provider_id: str) -> bool:
     """Check whether a provider has a configured API key.
 
     Checks (in order):
-    1. ``~/.hermes/.env`` for the known env var
+    1. ``~/.avoi/.env`` for the known env var
     2. ``os.environ`` for the known env var
     3. ``config.yaml → model.api_key`` (only if provider is the active one)
     4. ``config.yaml → providers.<id>.api_key``
@@ -198,7 +198,7 @@ def _provider_has_key(provider_id: str) -> bool:
     """
     env_var = _PROVIDER_ENV_VAR.get(provider_id)
     if env_var:
-        env_path = _get_hermes_home() / ".env"
+        env_path = _get_avoi_home() / ".env"
         env_values = _load_env_file(env_path)
         if env_values.get(env_var):
             return True
@@ -276,13 +276,13 @@ def get_providers() -> dict[str, Any]:
         auth_error = None
         if is_oauth:
             key_source = "oauth"
-            # Check if actually authenticated via hermes_cli.
+            # Check if actually authenticated via avoi_cli.
             # IMPORTANT: do not unconditionally overwrite has_key from _provider_has_key().
             # A token in config.yaml is a valid credential even when get_auth_status()
-            # returns logged_in=False (e.g. token not in the hermes credential pool,
+            # returns logged_in=False (e.g. token not in the avoi credential pool,
             # or refresh token consumed by native Codex CLI / VS Code extension).
             try:
-                from hermes_cli.auth import get_auth_status as _gas
+                from avoi_cli.auth import get_auth_status as _gas
                 status = _gas(pid)
                 if isinstance(status, dict) and status.get("logged_in"):
                     has_key = True
@@ -297,13 +297,13 @@ def get_providers() -> dict[str, Any]:
                     auth_error = status.get("error") if isinstance(status, dict) else None
             except Exception:
                 # Import failed or auth check errored — don't override a known-good
-                # key just because the hermes_cli auth module is unavailable.
-                logger.debug("hermes_cli auth check failed for %s", pid, exc_info=True)
+                # key just because the avoi_cli auth module is unavailable.
+                logger.debug("avoi_cli auth check failed for %s", pid, exc_info=True)
                 # keep has_key from _provider_has_key()
         elif has_key:
             env_var = _PROVIDER_ENV_VAR.get(pid)
             if env_var:
-                env_path = _get_hermes_home() / ".env"
+                env_path = _get_avoi_home() / ".env"
                 env_values = _load_env_file(env_path)
                 if env_values.get(env_var):
                     key_source = "env_file"
@@ -328,7 +328,7 @@ def get_providers() -> dict[str, Any]:
             import re as _re
             if _re.match(r'^[a-z][a-z0-9_-]{0,63}$', pid):
                 try:
-                    from hermes_cli.auth import get_auth_status as _gas
+                    from avoi_cli.auth import get_auth_status as _gas
                     status = _gas(pid)
                     if isinstance(status, dict) and status.get("logged_in"):
                         has_key = True
@@ -406,7 +406,7 @@ def get_providers() -> dict[str, Any]:
 def set_provider_key(provider_id: str, api_key: str | None) -> dict[str, Any]:
     """Set or update the API key for a provider.
 
-    Writes the key to ``~/.hermes/.env`` using the standard env var name.
+    Writes the key to ``~/.avoi/.env`` using the standard env var name.
     If ``api_key`` is None or empty, the key is removed.
 
     Returns a status dict with the operation result.
@@ -420,7 +420,7 @@ def set_provider_key(provider_id: str, api_key: str | None) -> dict[str, Any]:
         return {
             "ok": False,
             "error": f"'{_PROVIDER_DISPLAY.get(provider_id, provider_id)}' uses OAuth authentication. "
-                     f"Use `hermes model` in the terminal to configure it.",
+                     f"Use `avoi model` in the terminal to configure it.",
         }
 
     env_var = _PROVIDER_ENV_VAR.get(provider_id)
@@ -439,7 +439,7 @@ def set_provider_key(provider_id: str, api_key: str | None) -> dict[str, Any]:
         if len(api_key) < 8:
             return {"ok": False, "error": "API key appears too short."}
 
-    env_path = _get_hermes_home() / ".env"
+    env_path = _get_avoi_home() / ".env"
     try:
         _write_env_file(env_path, {env_var: api_key})
     except ValueError as exc:
@@ -464,7 +464,7 @@ def set_provider_key(provider_id: str, api_key: str | None) -> dict[str, Any]:
 def remove_provider_key(provider_id: str) -> dict[str, Any]:
     """Remove the API key for a provider.
 
-    Removes the key from ``~/.hermes/.env`` (via ``set_provider_key``)
+    Removes the key from ``~/.avoi/.env`` (via ``set_provider_key``)
     and also cleans up ``config.yaml`` if the key is stored there
     (``providers.<id>.api_key`` or top-level ``model.api_key`` when this
     provider is the active one).

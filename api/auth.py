@@ -1,6 +1,6 @@
 """
-Hermes Web UI -- Optional password authentication.
-Off by default. Enable by setting HERMES_WEBUI_PASSWORD env var
+AVOI Web UI -- Optional password authentication.
+Off by default. Enable by setting AVOI_WEBUI_PASSWORD env var
 or configuring a password in the Settings panel.
 """
 import hashlib
@@ -23,7 +23,7 @@ PUBLIC_PATHS = frozenset({
     '/api/auth/login', '/api/auth/status',
 })
 
-COOKIE_NAME = 'hermes_session'
+COOKIE_NAME = 'avoi_session'
 SESSION_TTL = 86400  # 24 hours
 
 _SESSIONS_FILE = STATE_DIR / '.sessions.json'
@@ -131,7 +131,7 @@ def _hash_password(password):
 def get_password_hash() -> str | None:
     """Return the active password hash, or None if auth is disabled.
     Priority: env var > settings.json."""
-    env_pw = os.getenv('HERMES_WEBUI_PASSWORD', '').strip()
+    env_pw = os.getenv('AVOI_WEBUI_PASSWORD', '').strip()
     if env_pw:
         return _hash_password(env_pw)
     settings = load_settings()

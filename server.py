@@ -1,5 +1,5 @@
 """
-Hermes Web UI -- Main server entry point.
+AVOI Web UI -- Main server entry point.
 Thin routing shell: imports Handler, delegates to api/routes.py, runs server.
 All business logic lives in api/*.
 """
@@ -49,7 +49,7 @@ class QuietHTTPServer(ThreadingHTTPServer):
 class Handler(BaseHTTPRequestHandler):
     timeout = 30  # seconds — kills idle/incomplete connections to prevent thread exhaustion
     _ver_suffix = WEBUI_VERSION.removeprefix('v')
-    server_version = ('HermesWebUI/' + _ver_suffix) if _ver_suffix != 'unknown' else 'HermesWebUI'
+    server_version = ('AVOIWebUI/' + _ver_suffix) if _ver_suffix != 'unknown' else 'AVOIWebUI'
     def log_message(self, fmt, *args): pass  # suppress default Apache-style log
 
     def log_request(self, code: str='-', size: str='-') -> None:
@@ -103,7 +103,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    from api.config import print_startup_config, verify_hermes_imports, _HERMES_FOUND
+    from api.config import print_startup_config, verify_avoi_imports, _AVOI_FOUND
 
     print_startup_config()
 
@@ -126,23 +126,23 @@ def main() -> None:
     if HOST not in ('127.0.0.1', '::1', 'localhost') and not is_auth_enabled():
         print(f'[!!] WARNING: Binding to {HOST} with NO PASSWORD SET.', flush=True)
         print(f'     Anyone on the network can access your filesystem and agent.', flush=True)
-        print(f'     Set a password via Settings or HERMES_WEBUI_PASSWORD env var.', flush=True)
+        print(f'     Set a password via Settings or AVOI_WEBUI_PASSWORD env var.', flush=True)
         print(f'     To suppress: bind to 127.0.0.1 or set a password.', flush=True)
         if within_container:
             print(f'     Note: You are running within a container, must bind to 0.0.0.0 to publish the port.', flush=True)
     elif not is_auth_enabled():
         print(f'  [tip] No password set. Any process on this machine can read sessions', flush=True)
-        print(f'        and memory via the local API. Set HERMES_WEBUI_PASSWORD to', flush=True)
+        print(f'        and memory via the local API. Set AVOI_WEBUI_PASSWORD to', flush=True)
         print(f'        enable authentication.', flush=True)
 
-    ok, missing, errors = verify_hermes_imports()
-    if not ok and _HERMES_FOUND:
-        print(f'[!!] Warning: Hermes agent found but missing modules: {missing}', flush=True)
+    ok, missing, errors = verify_avoi_imports()
+    if not ok and _AVOI_FOUND:
+        print(f'[!!] Warning: AVOI agent found but missing modules: {missing}', flush=True)
         for mod, err in errors.items():
             print(f'     {mod}: {err}', flush=True)
         print('     Attempting to install missing dependencies from agent requirements.txt...', flush=True)
         auto_install_agent_deps()
-        ok, missing, errors = verify_hermes_imports()
+        ok, missing, errors = verify_avoi_imports()
         if not ok:
             print(f'[!!] Still missing after install attempt: {missing}', flush=True)
             for mod, err in errors.items():
@@ -179,7 +179,7 @@ def main() -> None:
             print(f'[!!] WARNING: TLS setup failed ({e}), falling back to HTTP', flush=True)
             scheme = 'http'
 
-    print(f'  Hermes Web UI listening on {scheme}://{HOST}:{PORT}', flush=True)
+    print(f'  AVOI Web UI listening on {scheme}://{HOST}:{PORT}', flush=True)
     if HOST == '127.0.0.1' or within_container:
         print(f'  Remote access: ssh -N -L {PORT}:127.0.0.1:{PORT} <user>@<your-server>', flush=True)
     print(f'  Then open:     {scheme}://localhost:{PORT}', flush=True)

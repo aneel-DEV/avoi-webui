@@ -206,7 +206,7 @@ async function send(){
     })});
     if(startData.effective_model && S.session){
       S.session.model=startData.effective_model;
-      localStorage.setItem('hermes-webui-model', startData.effective_model);
+      localStorage.setItem('avoi-webui-model', startData.effective_model);
       if($('modelSelect')) _applyModelToDropdown(startData.effective_model, $('modelSelect'));
       if(typeof syncTopbar==='function') syncTopbar();
     }
@@ -1166,7 +1166,7 @@ function attachLiveStream(activeSid, streamId, uploaded=[], options={}){
 }
 
 function transcript(){
-  const lines=[`# Hermes session ${S.session?.session_id||''}`,``,
+  const lines=[`# AVOI session ${S.session?.session_id||''}`,``,
     `Workspace: ${S.session?.workspace||''}`,`Model: ${S.session?.model||''}`,``];
   for(const m of S.messages){
     if(!m||m.role==='tool')continue;
@@ -1497,7 +1497,7 @@ function _stashClarifyDraft(reason) {
   const draft = String((input && input.value) || "").trim();
   if (!draft) return false;
   const sid = _clarifySessionId || (S.session && S.session.session_id) || "unknown";
-  const key = `hermes-clarify-draft-${sid}-${_clarifySignature || "unknown"}`;
+  const key = `avoi-clarify-draft-${sid}-${_clarifySignature || "unknown"}`;
   try {
     sessionStorage.setItem(key, JSON.stringify({
       draft,
@@ -1801,7 +1801,7 @@ function playNotificationSound(){
 function sendBrowserNotification(title,body){
   if(!window._notificationsEnabled||!document.hidden) return;
   if(!('Notification' in window)) return;
-  const botName=window._botName||'Hermes';
+  const botName=window._botName||'AVOI';
   if(Notification.permission==='granted'){
     new Notification(title||botName,{body:body});
   }else if(Notification.permission!=='denied'){

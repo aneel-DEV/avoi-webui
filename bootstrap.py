@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""One-shot bootstrap launcher for Hermes Web UI."""
+"""One-shot bootstrap launcher for AVOI Web UI."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ import webbrowser
 from pathlib import Path
 
 
-INSTALLER_URL = "https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh"
+INSTALLER_URL = "https://raw.githubusercontent.com/NousResearch/avoi-agent/main/scripts/install.sh"
 REPO_ROOT = Path(__file__).resolve().parent
 
 
@@ -31,7 +31,7 @@ def _load_repo_dotenv() -> None:
     To keep a CLI-supplied value, unset it from .env or launch via start.sh
     and override there.
 
-    Only loads the webui repo .env — not ~/.hermes/.env, which the server
+    Only loads the webui repo .env — not ~/.avoi/.env, which the server
     loads independently at startup for provider credentials.
 
     Note: does not handle the ``export FOO=bar`` prefix — strip ``export``
@@ -63,9 +63,9 @@ def _load_repo_dotenv() -> None:
 # values from .env even when bootstrap.py is invoked directly (not via start.sh).
 _load_repo_dotenv()
 
-DEFAULT_HOST = os.getenv("HERMES_WEBUI_HOST", "127.0.0.1")
-DEFAULT_PORT = int(os.getenv("HERMES_WEBUI_PORT", "8787"))
-# Set HERMES_WEBUI_SKIP_ONBOARDING=1 to bypass the first-run wizard when
+DEFAULT_HOST = os.getenv("AVOI_WEBUI_HOST", "127.0.0.1")
+DEFAULT_PORT = int(os.getenv("AVOI_WEBUI_PORT", "8787"))
+# Set AVOI_WEBUI_SKIP_ONBOARDING=1 to bypass the first-run wizard when
 # the environment is already fully configured (e.g. managed hosting).
 
 
@@ -91,13 +91,13 @@ def ensure_supported_platform() -> None:
 
 
 def discover_agent_dir() -> Path | None:
-    home = Path(os.getenv("HERMES_HOME", str(Path.home() / ".hermes"))).expanduser()
+    home = Path(os.getenv("AVOI_HOME", str(Path.home() / ".avoi"))).expanduser()
     candidates = [
-        os.getenv("HERMES_WEBUI_AGENT_DIR", ""),
-        str(home / "hermes-agent"),
-        str(REPO_ROOT.parent / "hermes-agent"),
-        str(Path.home() / ".hermes" / "hermes-agent"),
-        str(Path.home() / "hermes-agent"),
+        os.getenv("AVOI_WEBUI_AGENT_DIR", ""),
+        str(home / "avoi-agent"),
+        str(REPO_ROOT.parent / "avoi-agent"),
+        str(Path.home() / ".avoi" / "avoi-agent"),
+        str(Path.home() / "avoi-agent"),
     ]
     for raw in candidates:
         if not raw:
@@ -109,7 +109,7 @@ def discover_agent_dir() -> Path | None:
 
 
 def discover_launcher_python(agent_dir: Path | None) -> str:
-    env_python = os.getenv("HERMES_WEBUI_PYTHON")
+    env_python = os.getenv("AVOI_WEBUI_PYTHON")
     if env_python:
         return env_python
     if agent_dir:
@@ -166,7 +166,7 @@ def hermes_command_exists() -> bool:
 
 
 def install_hermes_agent() -> None:
-    info(f"Hermes Agent not found. Attempting install via {INSTALLER_URL}")
+    info(f"AVOI Agent not found. Attempting install via {INSTALLER_URL}")
     subprocess.run(
         ["/bin/bash", "-lc", f"curl -fsSL {INSTALLER_URL} | bash"], check=True
     )
@@ -195,7 +195,7 @@ def open_browser(url: str) -> None:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Bootstrap Hermes Web UI onboarding.")
+    parser = argparse.ArgumentParser(description="Bootstrap AVOI Web UI onboarding.")
     parser.add_argument("port", nargs="?", type=int, default=DEFAULT_PORT)
     parser.add_argument("--host", default=DEFAULT_HOST)
     parser.add_argument(
@@ -206,7 +206,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--skip-agent-install",
         action="store_true",
-        help="Fail instead of attempting the official Hermes installer.",
+        help="Fail instead of attempting the official AVOI installer.",
     )
     return parser.parse_args()
 
@@ -219,26 +219,26 @@ def main() -> int:
     if not agent_dir and not hermes_command_exists():
         if args.skip_agent_install:
             raise RuntimeError(
-                "Hermes Agent was not found and auto-install was disabled."
+                "AVOI Agent was not found and auto-install was disabled."
             )
         install_hermes_agent()
         agent_dir = discover_agent_dir()
 
     python_exe = ensure_python_has_webui_deps(discover_launcher_python(agent_dir))
     state_dir = Path(
-        os.getenv("HERMES_WEBUI_STATE_DIR", str(Path.home() / ".hermes" / "webui"))
+        os.getenv("AVOI_WEBUI_STATE_DIR", str(Path.home() / ".avoi" / "webui"))
     ).expanduser()
     state_dir.mkdir(parents=True, exist_ok=True)
     log_path = state_dir / f"bootstrap-{args.port}.log"
 
     env = os.environ.copy()
-    env["HERMES_WEBUI_HOST"] = args.host
-    env["HERMES_WEBUI_PORT"] = str(args.port)
-    env.setdefault("HERMES_WEBUI_STATE_DIR", str(state_dir))
+    env["AVOI_WEBUI_HOST"] = args.host
+    env["AVOI_WEBUI_PORT"] = str(args.port)
+    env.setdefault("AVOI_WEBUI_STATE_DIR", str(state_dir))
     if agent_dir:
-        env["HERMES_WEBUI_AGENT_DIR"] = str(agent_dir)
+        env["AVOI_WEBUI_AGENT_DIR"] = str(agent_dir)
 
-    info(f"Starting Hermes Web UI on http://{args.host}:{args.port}")
+    info(f"Starting AVOI Web UI on http://{args.host}:{args.port}")
     with log_path.open("ab") as log_file:
         proc = subprocess.Popen(
             [python_exe, str(REPO_ROOT / "server.py")],

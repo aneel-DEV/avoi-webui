@@ -1,5 +1,5 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  /* ── Light mode (default) — warm gold-tinted palette from Hermes brand ── */
+  /* ── Light mode (default) — warm gold-tinted palette from AVOI brand ── */
   :root {
     --bg:#FEFCF7;--sidebar:#FAF7F0;--border:#E0D8C8;--border2:rgba(0,0,0,0.15);
     --text:#1A1610;--muted:#5C5344;--accent:#B8860B;--blue:#0288A8;--gold:#8B6508;--code-bg:#F5F0E5;
@@ -65,7 +65,7 @@
   /* App-level base — keeps em/rem values scaling correctly */
   :root[data-font-size="small"] { font-size: 12px; }
   :root[data-font-size="large"] { font-size: 16px; }
-  /* ── Dark mode — navy-black + gold accent matching Hermes terminal ── */
+  /* ── Dark mode — navy-black + gold accent matching AVOI terminal ── */
   :root.dark {
     --bg:#0D0D1A;--sidebar:#141425;--border:#2A2A45;--border2:rgba(255,255,255,0.14);
     --text:#FFF8DC;--muted:#C0C0C0;--accent:#FFD700;--blue:#4DD0E1;--gold:#FFBF00;--code-bg:#1A1A2E;
@@ -141,7 +141,7 @@
   :root.dark[data-skin="sienna"] .new-chat-btn{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;box-shadow:0 1px 2px rgba(20,19,17,0.08);}
   :root[data-skin="sienna"]:not(.dark) .new-chat-btn:hover,
   :root.dark[data-skin="sienna"] .new-chat-btn:hover{background:var(--accent-hover);border-color:var(--accent-hover);color:#fff;}
-  /* Tool / thinking cards: mute the blue-ish Hermes highlights to neutral */
+  /* Tool / thinking cards: mute the blue-ish AVOI highlights to neutral */
   :root[data-skin="sienna"] .tool-card{background:rgba(20,19,17,0.025);border-color:var(--border);border-radius:10px;}
   :root[data-skin="sienna"] .tool-card:hover{border-color:var(--border2);}
   :root[data-skin="sienna"] .tool-card-running{background:var(--accent-bg);border-color:var(--accent-bg-strong);}
@@ -1194,7 +1194,7 @@
     .topbar-chips{flex-wrap:nowrap;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
     .topbar-chips .chip,.topbar-chips .ws-chip,.topbar-chips button{font-size:11px!important;padding:4px 8px!important;white-space:nowrap;}
     .settings-main{padding:18px 16px;}
-    .hermes-action-grid{grid-template-columns:1fr;}
+    .avoi-action-grid{grid-template-columns:1fr;}
     .messages-inner{padding:12px 10px 20px;}
     .msg-body{padding-left:0;max-width:100%;}
     .msg-role{font-size:12px;}
@@ -2066,7 +2066,7 @@ main.main.showing-profiles > #mainProfiles{display:flex;}
 #mainSettings select:disabled{opacity:.6;cursor:not-allowed;}
 
 /* Quick-action grid in Conversation pane — outlined card buttons. */
-.hermes-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:18px;}
+.avoi-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:18px;}
 .settings-action-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--sidebar);color:var(--text);font-size:13px;font-weight:500;cursor:pointer;transition:background .15s,border-color .15s,color .15s;}
 .settings-action-btn:hover{background:var(--accent-bg);border-color:var(--accent-bg-strong);color:var(--accent-text);}
 .settings-action-btn.danger{color:var(--error,#e05);border-color:color-mix(in srgb,var(--error,#e05) 30%,transparent);}
@@ -2146,12 +2146,12 @@ main.main.showing-profiles > #mainProfiles{display:flex;}
 @media (max-width: 768px){
   .settings-main{padding:16px 12px;}
   .settings-section-title{font-size:16px;}
-  .hermes-action-grid{grid-template-columns:1fr;}
+  .avoi-action-grid{grid-template-columns:1fr;}
   #mainSettings .settings-field{padding:14px;}
 }
 
 /* ── Provider cards (Settings → Providers) ──
-   Matches hermes-desktop LLM Providers panel. Card uses --sidebar (surface-1),
+   Matches avoi-desktop LLM Providers panel. Card uses --sidebar (surface-1),
    hover rows use --surface (surface-2). Body divider uses a subtle tint. */
 #providersList{gap:12px;}
 .provider-card{
@@ -2435,7 +2435,7 @@ main.main.showing-profiles > #mainProfiles{display:flex;}
 @media (max-width: 600px) { .msg-row[data-role="user"] { max-width: 90%; } }
 /* Hide the entire "empty tool-anchor" assistant row (content='' with
    tool_calls). renderMessages keeps it in the DOM so tool cards can anchor
-   to it, but visually it adds a ghost "Hermes" header above the tool cards.
+   to it, but visually it adds a ghost "AVOI" header above the tool cards.
    With the row hidden the transition from live → settled on 'done' is
    seamless. */
 .msg-row[data-role="assistant"]:has(.msg-body:empty) { padding: 0; margin: 0; }
@@ -2609,7 +2609,7 @@ main.main.showing-profiles > #mainProfiles{display:flex;}
 .tool-card-preview { font-size: 11px; }
 
 /* ── Streaming cursor at the end of the live assistant body ── */
-@keyframes hermes-cursor-blink { 0%,49% { opacity: 1; } 50%,100% { opacity: 0; } }
+@keyframes avoi-cursor-blink { 0%,49% { opacity: 1; } 50%,100% { opacity: 0; } }
 #toolRunningRow { margin-top: 10px; }
 [data-live-assistant="1"]:last-child .msg-body > :last-child::after,
 [data-live-assistant="1"]:last-child .msg-body:not(:has(> *))::after {
@@ -2621,7 +2621,7 @@ main.main.showing-profiles > #mainProfiles{display:flex;}
   border-radius: 1px;
   margin-left: 3px;
   vertical-align: -0.16em;
-  animation: hermes-cursor-blink 1.05s steps(2, start) infinite;
+  animation: avoi-cursor-blink 1.05s steps(2, start) infinite;
 }
 
 /* ── Error state: distinct red-accent card, not italic emphasis ── */

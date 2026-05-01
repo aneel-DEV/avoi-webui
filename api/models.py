@@ -1,4 +1,4 @@
-"""Hermes Web UI -- Session model and in-memory session store."""
+"""AVOI Web UI -- Session model and in-memory session store."""
 import collections
 import json
 import logging
@@ -483,16 +483,16 @@ class Session:
         }
 
 def _get_profile_home(profile) -> Path:
-    """Resolve the hermes agent home directory for the given profile.
+    """Resolve the avoi agent home directory for the given profile.
 
     Prefers the profile-specific helper from api.profiles; falls back to the
-    HERMES_HOME environment variable or ~/.hermes, expanding ~ correctly.
+    AVOI_HOME environment variable or ~/.avoi, expanding ~ correctly.
     """
     try:
-        from api.profiles import get_hermes_home_for_profile
-        return Path(get_hermes_home_for_profile(profile))
+        from api.profiles import get_avoi_home_for_profile
+        return Path(get_avoi_home_for_profile(profile))
     except ImportError:
-        return Path(os.environ.get('HERMES_HOME') or '~/.hermes').expanduser()
+        return Path(os.environ.get('AVOI_HOME') or '~/.avoi').expanduser()
 
 
 def _apply_core_sync_or_error_marker(
@@ -753,13 +753,13 @@ def _hide_from_default_sidebar(session: dict) -> bool:
 
 
 def _active_state_db_path() -> Path:
-    """Return state.db for the active Hermes profile, degrading to HERMES_HOME."""
+    """Return state.db for the active AVOI profile, degrading to AVOI_HOME."""
     try:
-        from api.profiles import get_active_hermes_home
-        hermes_home = Path(get_active_hermes_home()).expanduser().resolve()
+        from api.profiles import get_active_avoi_home
+        avoi_home = Path(get_active_avoi_home()).expanduser().resolve()
     except Exception:
-        hermes_home = Path(os.getenv('HERMES_HOME', str(HOME / '.hermes'))).expanduser().resolve()
-    return hermes_home / 'state.db'
+        avoi_home = Path(os.getenv('AVOI_HOME', str(HOME / '.avoi'))).expanduser().resolve()
+    return avoi_home / 'state.db'
 
 
 def _enrich_sidebar_lineage_metadata(sessions: list[dict]) -> None:
@@ -969,21 +969,21 @@ def get_cli_sessions() -> list:
     import os
     cli_sessions = []
 
-    # Use the active WebUI profile's HERMES_HOME to find state.db.
+    # Use the active WebUI profile's AVOI_HOME to find state.db.
     # The active profile is determined by what the user has selected in the UI
     # (stored in the server's runtime config). This means:
-    #   - default profile  -> ~/.hermes/state.db
-    #   - named profile X  -> ~/.hermes/profiles/X/state.db
+    #   - default profile  -> ~/.avoi/state.db
+    #   - named profile X  -> ~/.avoi/profiles/X/state.db
     # We resolve the active profile's home directory rather than just using
-    # HERMES_HOME (which is the server's launch profile, not necessarily the
+    # AVOI_HOME (which is the server's launch profile, not necessarily the
     # active one after a profile switch).
     try:
-        from api.profiles import get_active_hermes_home
-        hermes_home = Path(get_active_hermes_home()).expanduser().resolve()
+        from api.profiles import get_active_avoi_home
+        avoi_home = Path(get_active_avoi_home()).expanduser().resolve()
     except Exception:
-        hermes_home = Path(os.getenv('HERMES_HOME', str(HOME / '.hermes'))).expanduser().resolve()
+        avoi_home = Path(os.getenv('AVOI_HOME', str(HOME / '.avoi'))).expanduser().resolve()
 
-    db_path = hermes_home / 'state.db'
+    db_path = avoi_home / 'state.db'
     if not db_path.exists():
         return cli_sessions
 
@@ -1021,7 +1021,7 @@ def get_cli_sessions() -> list:
                 if len(parts) >= 3:
                     _job_id = parts[1]
                     try:
-                        _jobs_path = hermes_home / 'cron' / 'jobs.json'
+                        _jobs_path = avoi_home / 'cron' / 'jobs.json'
                         if _jobs_path.exists():
                             import json as _json
                             _jobs_data = _json.loads(_jobs_path.read_text())
@@ -1079,11 +1079,11 @@ def get_cli_session_messages(sid) -> list:
         return []
 
     try:
-        from api.profiles import get_active_hermes_home
-        hermes_home = Path(get_active_hermes_home()).expanduser().resolve()
+        from api.profiles import get_active_avoi_home
+        avoi_home = Path(get_active_avoi_home()).expanduser().resolve()
     except Exception:
-        hermes_home = Path(os.getenv('HERMES_HOME', str(HOME / '.hermes'))).expanduser().resolve()
-    db_path = hermes_home / 'state.db'
+        avoi_home = Path(os.getenv('AVOI_HOME', str(HOME / '.avoi'))).expanduser().resolve()
+    db_path = avoi_home / 'state.db'
     if not db_path.exists():
         return []
 
@@ -1120,11 +1120,11 @@ def delete_cli_session(sid) -> bool:
         return False
 
     try:
-        from api.profiles import get_active_hermes_home
-        hermes_home = Path(get_active_hermes_home()).expanduser().resolve()
+        from api.profiles import get_active_avoi_home
+        avoi_home = Path(get_active_avoi_home()).expanduser().resolve()
     except Exception:
-        hermes_home = Path(os.getenv('HERMES_HOME', str(HOME / '.hermes'))).expanduser().resolve()
-    db_path = hermes_home / 'state.db'
+        avoi_home = Path(os.getenv('AVOI_HOME', str(HOME / '.avoi'))).expanduser().resolve()
+    db_path = avoi_home / 'state.db'
     if not db_path.exists():
         return False
 

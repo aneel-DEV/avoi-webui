@@ -25,7 +25,7 @@ function queueSessionMessage(sid, payload){
   const entry={...payload, _queued_at: Date.now()};
   q.push(entry);
   // Persist to sessionStorage so the queue survives page refresh
-  try{ sessionStorage.setItem('hermes-queue-'+sid, JSON.stringify(q)); }catch(_){}
+  try{ sessionStorage.setItem('avoi-queue-'+sid, JSON.stringify(q)); }catch(_){}
   return q.length;
 }
 function shiftQueuedSessionMessage(sid){
@@ -34,9 +34,9 @@ function shiftQueuedSessionMessage(sid){
   const next=q.shift();
   if(!q.length){
     delete SESSION_QUEUES[sid];
-    try{ sessionStorage.removeItem('hermes-queue-'+sid); }catch(_){}
+    try{ sessionStorage.removeItem('avoi-queue-'+sid); }catch(_){}
   } else {
-    try{ sessionStorage.setItem('hermes-queue-'+sid, JSON.stringify(q)); }catch(_){}
+    try{ sessionStorage.setItem('avoi-queue-'+sid, JSON.stringify(q)); }catch(_){}
   }
   return next;
 }
@@ -135,7 +135,7 @@ const _CSV_EXTS=/\.csv$/i;
 const _EXCALIDRAW_EXTS=/\.excalidraw$/i;
 // ── Media playback speed controls ─────────────────────────────────────────
 const MEDIA_PLAYBACK_RATES=[0.5,0.75,1,1.25,1.5,2];
-const MEDIA_PLAYBACK_STORAGE_KEY='hermes-media-playback-rate';
+const MEDIA_PLAYBACK_STORAGE_KEY='avoi-media-playback-rate';
 function _getStoredMediaPlaybackRate(){
   try{
     const raw=localStorage.getItem(MEDIA_PLAYBACK_STORAGE_KEY);
@@ -314,7 +314,7 @@ async function populateModelDropdown(){
       sel.appendChild(og);
     }
     // Set default model from server if no localStorage preference
-    if(data.default_model && !localStorage.getItem('hermes-webui-model')){
+    if(data.default_model && !localStorage.getItem('avoi-webui-model')){
       _applyModelToDropdown(data.default_model, sel, data.active_provider||null);
     }
     if(typeof syncModelChip==='function') syncModelChip();
@@ -415,10 +415,10 @@ async function _fetchLiveModels(provider, sel){
     const added=_addLiveModelsToSelect(provider,data.models,sel);
     if(added>0){
       if(typeof syncModelChip==='function') syncModelChip();
-      console.log('[hermes] Live models loaded for',provider+':',added,'new models added');
+      console.log('[avoi] Live models loaded for',provider+':',added,'new models added');
     }
   }catch(e){
-    console.debug('[hermes] Live model fetch failed for',provider,e.message);
+    console.debug('[avoi] Live model fetch failed for',provider,e.message);
   }finally{
     _liveModelFetchPending.delete(provider);
   }
@@ -426,7 +426,7 @@ async function _fetchLiveModels(provider, sel){
 
 /**
  * Check if the given model ID belongs to a different provider than the one
- * currently configured in Hermes. Returns a warning string if mismatched,
+ * currently configured in AVOI. Returns a warning string if mismatched,
  * or null if the selection looks compatible.
  *
  * Provider detection is intentionally loose — we compare the model's slash
@@ -1627,7 +1627,7 @@ function renderMd(raw){
       // Rewrite localhost/127.0.0.1 to the actual server base URL so remote
       // users (VPN, Docker, deployed) can load agent-generated images (#642).
       // Strip the trailing slash from document.baseURI so the URL's own path
-      // joins cleanly — this preserves any subpath mount (e.g. /hermes/).
+      // joins cleanly — this preserves any subpath mount (e.g. /avoi/).
       let src=ref;
       if(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(src)){
         const base=(document.baseURI||'').replace(/\/$/,'');
@@ -1941,8 +1941,8 @@ function _renderQueueChips(sid){
 
   function _saveAndRefresh(){
     const liveQ=_getSessionQueue(sid,false);
-    if(!liveQ.length){delete SESSION_QUEUES[sid];try{sessionStorage.removeItem('hermes-queue-'+sid);}catch(_){}}
-    else{SESSION_QUEUES[sid]=[...liveQ];try{sessionStorage.setItem('hermes-queue-'+sid,JSON.stringify(liveQ));}catch(_){}}
+    if(!liveQ.length){delete SESSION_QUEUES[sid];try{sessionStorage.removeItem('avoi-queue-'+sid);}catch(_){}}
+    else{SESSION_QUEUES[sid]=[...liveQ];try{sessionStorage.setItem('avoi-queue-'+sid,JSON.stringify(liveQ));}catch(_){}}
     delete _queueRenderKeys[sid];
     updateQueueBadge(sid);
   }
@@ -1968,7 +1968,7 @@ function _renderQueueChips(sid){
         const firstFiles=(snapshot.find(e=>e&&Array.isArray(e.files)&&e.files.length)||{files:[]}).files;
         liveQ.length=0;liveQ.push({text:combined,files:firstFiles,_queued_at:Date.now()});
         SESSION_QUEUES[sid]=liveQ;
-        try{sessionStorage.setItem('hermes-queue-'+sid,JSON.stringify(liveQ));}catch(_){}
+        try{sessionStorage.setItem('avoi-queue-'+sid,JSON.stringify(liveQ));}catch(_){}
         delete _queueRenderKeys[sid];
         updateQueueBadge(sid);
       };
@@ -2048,7 +2048,7 @@ function _renderQueueChips(sid){
         const idx=_entryTs!=null?liveQ.findIndex(e=>e&&e._queued_at===_entryTs):i;
         if(idx!==-1){
           liveQ[idx]={...liveQ[idx],text:newText};
-          try{sessionStorage.setItem('hermes-queue-'+sid,JSON.stringify(liveQ));}catch(_){}
+          try{sessionStorage.setItem('avoi-queue-'+sid,JSON.stringify(liveQ));}catch(_){}
           delete _queueRenderKeys[sid];
           updateQueueBadge(sid);
         }
@@ -2087,8 +2087,8 @@ function _renderQueueChips(sid){
       const liveQ=_getSessionQueue(sid,false);
       const idx=_entryTs!=null?liveQ.findIndex(e=>e&&e._queued_at===_entryTs):i;
       if(idx!==-1) liveQ.splice(idx,1);
-      if(!liveQ.length){delete SESSION_QUEUES[sid];try{sessionStorage.removeItem('hermes-queue-'+sid);}catch(_){}}
-      else{SESSION_QUEUES[sid]=[...liveQ];try{sessionStorage.setItem('hermes-queue-'+sid,JSON.stringify(liveQ));}catch(_){}}
+      if(!liveQ.length){delete SESSION_QUEUES[sid];try{sessionStorage.removeItem('avoi-queue-'+sid);}catch(_){}}
+      else{SESSION_QUEUES[sid]=[...liveQ];try{sessionStorage.setItem('avoi-queue-'+sid,JSON.stringify(liveQ));}catch(_){}}
       delete _queueRenderKeys[sid];
       updateQueueBadge(sid);
     };
@@ -2384,7 +2384,7 @@ function speakMessage(btn){
   const utter=new SpeechSynthesisUtterance(clean);
 
   // Apply saved voice preference
-  const savedVoice=localStorage.getItem('hermes-tts-voice');
+  const savedVoice=localStorage.getItem('avoi-tts-voice');
   const voices=speechSynthesis.getVoices();
   if(savedVoice&&voices.length){
     const match=voices.find(v=>v.name===savedVoice);
@@ -2392,9 +2392,9 @@ function speakMessage(btn){
   }
 
   // Apply saved rate/pitch
-  const savedRate=parseFloat(localStorage.getItem('hermes-tts-rate'));
+  const savedRate=parseFloat(localStorage.getItem('avoi-tts-rate'));
   if(!isNaN(savedRate)) utter.rate= Math.min(2,Math.max(0.5,savedRate));
-  const savedPitch=parseFloat(localStorage.getItem('hermes-tts-pitch'));
+  const savedPitch=parseFloat(localStorage.getItem('avoi-tts-pitch'));
   if(!isNaN(savedPitch)) utter.pitch=Math.min(2,Math.max(0,savedPitch));
 
   _ttsCurrentUtterance=utter;
@@ -2419,7 +2419,7 @@ function stopTTS(){
 
 function autoReadLastAssistant(){
   if(!('speechSynthesis' in window)) return;
-  const pref=localStorage.getItem('hermes-tts-auto-read');
+  const pref=localStorage.getItem('avoi-tts-auto-read');
   if(pref!=='true') return;
   // Find the last assistant message segment in the DOM
   const rows=document.querySelectorAll('.msg-row[data-role="assistant"], .assistant-segment[data-raw-text]');
@@ -2431,23 +2431,23 @@ function autoReadLastAssistant(){
   if(!clean) return;
 
   const utter=new SpeechSynthesisUtterance(clean);
-  const savedVoice=localStorage.getItem('hermes-tts-voice');
+  const savedVoice=localStorage.getItem('avoi-tts-voice');
   const voices=speechSynthesis.getVoices();
   if(savedVoice&&voices.length){
     const match=voices.find(v=>v.name===savedVoice);
     if(match) utter.voice=match;
   }
-  const savedRate=parseFloat(localStorage.getItem('hermes-tts-rate'));
+  const savedRate=parseFloat(localStorage.getItem('avoi-tts-rate'));
   if(!isNaN(savedRate)) utter.rate=Math.min(2,Math.max(0.5,savedRate));
-  const savedPitch=parseFloat(localStorage.getItem('hermes-tts-pitch'));
+  const savedPitch=parseFloat(localStorage.getItem('avoi-tts-pitch'));
   if(!isNaN(savedPitch)) utter.pitch=Math.min(2,Math.max(0,savedPitch));
 
   speechSynthesis.speak(utter);
 }
 
 // ── Reconnect banner (B4/B5: reload resilience) ──
-const INFLIGHT_KEY = 'hermes-webui-inflight'; // localStorage key for in-flight session tracking
-const INFLIGHT_STATE_KEY = 'hermes-webui-inflight-state'; // localStorage snapshots for mid-stream reload recovery
+const INFLIGHT_KEY = 'avoi-webui-inflight'; // localStorage key for in-flight session tracking
+const INFLIGHT_STATE_KEY = 'avoi-webui-inflight-state'; // localStorage snapshots for mid-stream reload recovery
 
 function _readInflightStateMap(){
   try{
@@ -2536,7 +2536,7 @@ function _showUpdateBanner(data){
 }
 function dismissUpdate(){
   const b=$('updateBanner');if(b)b.classList.remove('visible');
-  sessionStorage.setItem('hermes-update-dismissed','1');
+  sessionStorage.setItem('avoi-update-dismissed','1');
 }
 async function applyUpdates(){
   const btn=$('btnApplyUpdate');
@@ -2560,8 +2560,8 @@ async function applyUpdates(){
       }
     }
     showToast('Update applied — restarting…');
-    sessionStorage.removeItem('hermes-update-checked');
-    sessionStorage.removeItem('hermes-update-dismissed');
+    sessionStorage.removeItem('avoi-update-checked');
+    sessionStorage.removeItem('avoi-update-dismissed');
     _waitForServerThenReload();
   }catch(e){
     if(errEl){errEl.textContent='Update failed: '+e.message;errEl.style.display='block';}
@@ -2607,8 +2607,8 @@ async function forceUpdate(btn){
       return;
     }
     showToast('Force update applied — restarting…');
-    sessionStorage.removeItem('hermes-update-checked');
-    sessionStorage.removeItem('hermes-update-dismissed');
+    sessionStorage.removeItem('avoi-update-checked');
+    sessionStorage.removeItem('avoi-update-dismissed');
     _waitForServerThenReload();
   }catch(e){
     if(errEl){errEl.textContent='Force update failed: '+e.message;errEl.style.display='block';}
@@ -2699,11 +2699,11 @@ async function checkInflightOnBoot(sid) {
 
 function syncTopbar(){
   if(!S.session){
-    document.title=window._botName||'Hermes';
+    document.title=window._botName||'AVOI';
     if(typeof syncWorkspaceDisplays==='function') syncWorkspaceDisplays();
     if(typeof syncModelChip==='function') syncModelChip();
     if(typeof syncTerminalButton==='function') syncTerminalButton();
-    if(typeof _syncHermesPanelSessionActions==='function') _syncHermesPanelSessionActions();
+    if(typeof _syncAvoiPanelSessionActions==='function') _syncAvoiPanelSessionActions();
     else {
       const sidebarName=$('sidebarWsName');
       if(sidebarName && sidebarName.textContent==='Workspace'){
@@ -2718,7 +2718,7 @@ function syncTopbar(){
   }
   const sessionTitle=S.session.title||t('untitled');
   const _topbarTitle=$('topbarTitle');if(_topbarTitle)_topbarTitle.textContent=sessionTitle;
-  document.title=sessionTitle+' \u2014 '+(window._botName||'Hermes');
+  document.title=sessionTitle+' \u2014 '+(window._botName||'AVOI');
   const vis=S.messages.filter(m=>m&&m.role&&m.role!=='tool');
   const _topbarMeta=$('topbarMeta');if(_topbarMeta)_topbarMeta.textContent=t('n_messages',vis.length);
   if(typeof syncAppTitlebar==='function') syncAppTitlebar();
@@ -2769,7 +2769,7 @@ function syncTopbar(){
   // Show Clear button only when session has messages
   const clearBtn=$('btnClearConv');
   if(clearBtn) clearBtn.style.display=(S.messages&&S.messages.filter(msg=>msg.role!=='tool').length>0)?'':'none';
-  if(typeof _syncHermesPanelSessionActions==='function') _syncHermesPanelSessionActions();
+  if(typeof _syncAvoiPanelSessionActions==='function') _syncAvoiPanelSessionActions();
   if(typeof syncWorkspaceDisplays==='function') syncWorkspaceDisplays();
   if(typeof syncTerminalButton==='function') syncTerminalButton();
   // modelSelect already set above
@@ -2804,7 +2804,7 @@ function _messageHasReasoningPayload(m){
   return /<think>[\s\S]*?<\/think>|<\|channel>thought\n[\s\S]*?<channel\|>|<\|turn\|>thinking\n[\s\S]*?<turn\|>/.test(String(m.content||''));
 }
 function _assistantRoleHtml(tsTitle=''){
-  const _bn=window._botName||'Hermes';
+  const _bn=window._botName||'AVOI';
   return `<div class="msg-role assistant" ${tsTitle?`title="${esc(tsTitle)}"`:''}><div class="role-icon assistant">${esc(_bn.charAt(0).toUpperCase())}</div><span style="font-size:12px">${esc(_bn)}</span></div>`;
 }
 function _createAssistantTurn(tsTitle=''){
@@ -3430,7 +3430,7 @@ function renderMessages(){
     };
     S.messages.forEach(m=>{
       if(!m) return;
-      // OpenAI / Hermes CLI format: role=tool with tool_call_id
+      // OpenAI / AVOI CLI format: role=tool with tool_call_id
       if(m.role==='tool'){
         const tid=m.tool_call_id||m.tool_use_id||'';
         if(tid) resultsByTid[tid]=_snipFromRaw(m.content);

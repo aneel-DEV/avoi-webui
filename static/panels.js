@@ -115,9 +115,9 @@ function syncAppTitlebar() {
 
 function _beginSettingsPanelSession() {
   _settingsDirty = false;
-  _settingsThemeOnOpen = localStorage.getItem('hermes-theme') || 'dark';
-  _settingsSkinOnOpen = localStorage.getItem('hermes-skin') || 'default';
-  _settingsFontSizeOnOpen = localStorage.getItem('hermes-font-size') || 'default';
+  _settingsThemeOnOpen = localStorage.getItem('avoi-theme') || 'dark';
+  _settingsSkinOnOpen = localStorage.getItem('avoi-skin') || 'default';
+  _settingsFontSizeOnOpen = localStorage.getItem('avoi-font-size') || 'default';
   _pendingSettingsTargetPanel = null;
   if (_settingsAppearanceAutosaveTimer) {
     clearTimeout(_settingsAppearanceAutosaveTimer);
@@ -2255,7 +2255,7 @@ async function switchToProfile(name) {
     // ── Model + Workspace (parallelized) ───────────────────────────────────
     // populateModelDropdown hits /api/models; loadWorkspaceList hits /api/workspaces.
     // They are fully independent — run both simultaneously to cut switch time ~50%.
-    localStorage.removeItem('hermes-webui-model');
+    localStorage.removeItem('avoi-webui-model');
     _skillsData = null;
     _workspaceList = null;
     await Promise.all([populateModelDropdown(), loadWorkspaceList()]);
@@ -2506,7 +2506,7 @@ let _settingsDirty = false;
 let _settingsThemeOnOpen = null; // track theme at open time for discard revert
 let _settingsSkinOnOpen = null; // track skin at open time for discard revert
 let _settingsFontSizeOnOpen = null; // track font size at open time for discard revert
-let _settingsHermesDefaultModelOnOpen = '';
+let _settingsAvoiDefaultModelOnOpen = '';
 let _settingsSection = 'conversation';
 let _currentSettingsSection = 'conversation';
 let _settingsAppearanceAutosaveTimer = null;
@@ -2535,11 +2535,11 @@ function switchSettingsSection(name){
   if(section==='providers') loadProvidersPanel();
 }
 
-function _syncHermesPanelSessionActions(){
+function _syncAvoiPanelSessionActions(){
   const hasSession=!!S.session;
   const visibleMessages=hasSession?(S.messages||[]).filter(m=>m&&m.role&&m.role!=='tool').length:0;
   const title=hasSession?(S.session.title||t('untitled')):t('active_conversation_none');
-  const meta=$('hermesSessionMeta');
+  const meta=$('avoiSessionMeta');
   if(meta){
     meta.textContent=hasSession
       ? t('active_conversation_meta', title, visibleMessages)
@@ -2633,9 +2633,9 @@ function _applyTtsEnabled(enabled){
 
 function _appearancePayloadFromUi(){
   return {
-    theme: ($('settingsTheme')||{}).value || localStorage.getItem('hermes-theme') || 'dark',
-    skin: ($('settingsSkin')||{}).value || localStorage.getItem('hermes-skin') || 'default',
-    font_size: ($('settingsFontSize')||{}).value || localStorage.getItem('hermes-font-size') || 'default',
+    theme: ($('settingsTheme')||{}).value || localStorage.getItem('avoi-theme') || 'dark',
+    skin: ($('settingsSkin')||{}).value || localStorage.getItem('avoi-skin') || 'default',
+    font_size: ($('settingsFontSize')||{}).value || localStorage.getItem('avoi-font-size') || 'default',
   };
 }
 
@@ -2659,9 +2659,9 @@ function _setAppearanceAutosaveStatus(state){
 
 function _rememberAppearanceSaved(payload){
   if(!payload) return;
-  _settingsThemeOnOpen=payload.theme||localStorage.getItem('hermes-theme')||'dark';
-  _settingsSkinOnOpen=payload.skin||localStorage.getItem('hermes-skin')||'default';
-  _settingsFontSizeOnOpen=payload.font_size||localStorage.getItem('hermes-font-size')||'default';
+  _settingsThemeOnOpen=payload.theme||localStorage.getItem('avoi-theme')||'dark';
+  _settingsSkinOnOpen=payload.skin||localStorage.getItem('avoi-skin')||'default';
+  _settingsFontSizeOnOpen=payload.font_size||localStorage.getItem('avoi-font-size')||'default';
 }
 
 function _scheduleAppearanceAutosave(){
@@ -2681,7 +2681,7 @@ async function _autosaveAppearanceSettings(payload){
     _settingsAppearanceAutosaveRetryPayload=null;
     _rememberAppearanceSaved(payload);
     if(saved&&saved.font_size){
-      localStorage.setItem('hermes-font-size',saved.font_size);
+      localStorage.setItem('avoi-font-size',saved.font_size);
     }
     _setAppearanceAutosaveStatus('saved');
   }catch(e){
@@ -2749,8 +2749,8 @@ function _setPreferencesAutosaveStatus(state){
 
 function _rememberPreferencesSaved(payload){
   if(!payload) return;
-  if(payload.send_key!==undefined) localStorage.setItem('hermes-pref-send_key',payload.send_key);
-  if(payload.language!==undefined) localStorage.setItem('hermes-pref-language',payload.language);
+  if(payload.send_key!==undefined) localStorage.setItem('avoi-pref-send_key',payload.send_key);
+  if(payload.language!==undefined) localStorage.setItem('avoi-pref-language',payload.language);
 }
 
 function _schedulePreferencesAutosave(){
@@ -2777,7 +2777,7 @@ async function _autosavePreferencesSettings(payload){
     const pwField=$('settingsPassword');
     const pwDirty=!!(pwField&&pwField.value);
     const modelSel=$('settingsModel');
-    const modelDirty=!!(modelSel&&((modelSel.value||'')!==(_settingsHermesDefaultModelOnOpen||'')));
+    const modelDirty=!!(modelSel&&((modelSel.value||'')!==(_settingsAvoiDefaultModelOnOpen||'')));
     if(!pwDirty&&!modelDirty){
       _settingsDirty=false;
       const bar=$('settingsUnsavedBar');
@@ -2812,31 +2812,31 @@ async function loadSettingsPanel(){
     const skinSel=$('settingsSkin');
     if(skinSel) skinSel.value=skinVal;
     if(typeof _buildSkinPicker==='function') _buildSkinPicker(skinVal);
-    const fontSizeVal=settings.font_size||localStorage.getItem('hermes-font-size')||'default';
-    localStorage.setItem('hermes-font-size',fontSizeVal);
+    const fontSizeVal=settings.font_size||localStorage.getItem('avoi-font-size')||'default';
+    localStorage.setItem('avoi-font-size',fontSizeVal);
     if(typeof _applyFontSize==='function') _applyFontSize(fontSizeVal);
     const fontSizeSel=$('settingsFontSize');
     if(fontSizeSel) fontSizeSel.value=fontSizeVal;
     if(typeof _syncFontSizePicker==='function') _syncFontSizePicker(fontSizeVal);
     // Workspace panel default-open toggle (localStorage-backed)
-    // Uses a separate key (hermes-webui-workspace-panel-pref) so that
+    // Uses a separate key (avoi-webui-workspace-panel-pref) so that
     // closing the panel via toolbar X does not clear the user's preference.
     const wsPanelCb=$('settingsWorkspacePanelOpen');
     if(wsPanelCb){
-      wsPanelCb.checked=localStorage.getItem('hermes-webui-workspace-panel-pref')==='open';
+      wsPanelCb.checked=localStorage.getItem('avoi-webui-workspace-panel-pref')==='open';
       wsPanelCb.onchange=function(){
         const open=this.checked;
-        localStorage.setItem('hermes-webui-workspace-panel-pref',open?'open':'closed');
+        localStorage.setItem('avoi-webui-workspace-panel-pref',open?'open':'closed');
         // Also sync the runtime key so the current session reflects the change
-        localStorage.setItem('hermes-webui-workspace-panel',open?'open':'closed');
+        localStorage.setItem('avoi-webui-workspace-panel',open?'open':'closed');
         document.documentElement.dataset.workspacePanel=open?'open':'closed';
         if(open&&_workspacePanelMode==='closed') openWorkspacePanel('browse');
         else if(!open&&_workspacePanelMode!=='closed') toggleWorkspacePanel(false);
       };
     }
     const resolvedLanguage=(typeof resolvePreferredLocale==='function')
-      ? resolvePreferredLocale(settings.language, localStorage.getItem('hermes-lang'))
-      : (settings.language || localStorage.getItem('hermes-lang') || 'en');
+      ? resolvePreferredLocale(settings.language, localStorage.getItem('avoi-lang'))
+      : (settings.language || localStorage.getItem('avoi-lang') || 'en');
     // Keep settings modal and current page strings in sync with the resolved locale.
     if(typeof setLocale==='function'){
       setLocale(resolvedLanguage);
@@ -2866,16 +2866,16 @@ async function loadSettingsPanel(){
           _fetchLiveModels(models.active_provider, modelSel);
         }
       }catch(e){}
-      _settingsHermesDefaultModelOnOpen=(models&&models.default_model)||'';
+      _settingsAvoiDefaultModelOnOpen=(models&&models.default_model)||'';
       // Use the smart matcher so a saved bare form like "anthropic/claude-opus-4.6"
       // (what the CLI's `hermes model` command writes) still selects the matching
       // `@nous:anthropic/claude-opus-4.6` option on a Nous setup. Without this, the
       // picker renders blank for any user whose default was persisted without the
       // @-prefix — CLI-first users, legacy installs, etc.
       if(typeof _applyModelToDropdown==='function'){
-        _applyModelToDropdown(_settingsHermesDefaultModelOnOpen, modelSel, (models&&models.active_provider)||window._activeProvider||null);
+        _applyModelToDropdown(_settingsAvoiDefaultModelOnOpen, modelSel, (models&&models.active_provider)||window._activeProvider||null);
       }else{
-        modelSel.value=_settingsHermesDefaultModelOnOpen;
+        modelSel.value=_settingsAvoiDefaultModelOnOpen;
       }
       modelSel.addEventListener('change',_markSettingsDirty,{once:false});
     }
@@ -2910,15 +2910,15 @@ async function loadSettingsPanel(){
     if(soundCb){soundCb.checked=!!settings.sound_enabled;soundCb.addEventListener('change',_schedulePreferencesAutosave,{once:false});}
     // TTS settings (localStorage-only, no server round-trip needed)
     const ttsEnabledCb=$('settingsTtsEnabled');
-    if(ttsEnabledCb){ttsEnabledCb.checked=localStorage.getItem('hermes-tts-enabled')==='true';ttsEnabledCb.onchange=function(){localStorage.setItem('hermes-tts-enabled',this.checked?'true':'false');_applyTtsEnabled(this.checked);};}
+    if(ttsEnabledCb){ttsEnabledCb.checked=localStorage.getItem('avoi-tts-enabled')==='true';ttsEnabledCb.onchange=function(){localStorage.setItem('avoi-tts-enabled',this.checked?'true':'false');_applyTtsEnabled(this.checked);};}
     const ttsAutoReadCb=$('settingsTtsAutoRead');
-    if(ttsAutoReadCb){ttsAutoReadCb.checked=localStorage.getItem('hermes-tts-auto-read')==='true';ttsAutoReadCb.onchange=function(){localStorage.setItem('hermes-tts-auto-read',this.checked?'true':'false');};}
+    if(ttsAutoReadCb){ttsAutoReadCb.checked=localStorage.getItem('avoi-tts-auto-read')==='true';ttsAutoReadCb.onchange=function(){localStorage.setItem('avoi-tts-auto-read',this.checked?'true':'false');};}
     // Populate voice selector from speechSynthesis
     const ttsVoiceSel=$('settingsTtsVoice');
     if(ttsVoiceSel&&'speechSynthesis' in window){
       const populateVoices=()=>{
         const voices=speechSynthesis.getVoices();
-        const current=localStorage.getItem('hermes-tts-voice')||'';
+        const current=localStorage.getItem('avoi-tts-voice')||'';
         ttsVoiceSel.innerHTML='<option value="">Default system voice</option>';
         voices.forEach(v=>{
           const opt=document.createElement('option');
@@ -2929,24 +2929,24 @@ async function loadSettingsPanel(){
       };
       populateVoices();
       speechSynthesis.addEventListener('voiceschanged',populateVoices,{once:true});
-      ttsVoiceSel.onchange=function(){localStorage.setItem('hermes-tts-voice',this.value);};
+      ttsVoiceSel.onchange=function(){localStorage.setItem('avoi-tts-voice',this.value);};
     }
     // TTS rate/pitch sliders
     const ttsRateSlider=$('settingsTtsRate');
     const ttsRateValue=$('settingsTtsRateValue');
     if(ttsRateSlider){
-      const savedRate=localStorage.getItem('hermes-tts-rate');
+      const savedRate=localStorage.getItem('avoi-tts-rate');
       ttsRateSlider.value=savedRate||'1';
       if(ttsRateValue) ttsRateValue.textContent=parseFloat(ttsRateSlider.value).toFixed(1)+'x';
-      ttsRateSlider.oninput=function(){if(ttsRateValue)ttsRateValue.textContent=parseFloat(this.value).toFixed(1)+'x';localStorage.setItem('hermes-tts-rate',this.value);};
+      ttsRateSlider.oninput=function(){if(ttsRateValue)ttsRateValue.textContent=parseFloat(this.value).toFixed(1)+'x';localStorage.setItem('avoi-tts-rate',this.value);};
     }
     const ttsPitchSlider=$('settingsTtsPitch');
     const ttsPitchValue=$('settingsTtsPitchValue');
     if(ttsPitchSlider){
-      const savedPitch=localStorage.getItem('hermes-tts-pitch');
+      const savedPitch=localStorage.getItem('avoi-tts-pitch');
       ttsPitchSlider.value=savedPitch||'1';
       if(ttsPitchValue) ttsPitchValue.textContent=parseFloat(ttsPitchSlider.value).toFixed(1);
-      ttsPitchSlider.oninput=function(){if(ttsPitchValue)ttsPitchValue.textContent=parseFloat(this.value).toFixed(1);localStorage.setItem('hermes-tts-pitch',this.value);};
+      ttsPitchSlider.oninput=function(){if(ttsPitchValue)ttsPitchValue.textContent=parseFloat(this.value).toFixed(1);localStorage.setItem('avoi-tts-pitch',this.value);};
     }
     const notifCb=$('settingsNotificationsEnabled');
     if(notifCb){notifCb.checked=!!settings.notifications_enabled;notifCb.addEventListener('change',_schedulePreferencesAutosave,{once:false});}
@@ -2972,7 +2972,7 @@ async function loadSettingsPanel(){
     // Bot name — debounced autosave (text input)
     const botNameField=$('settingsBotName');
     if(botNameField){
-      botNameField.value=settings.bot_name||'Hermes';
+      botNameField.value=settings.bot_name||'AVOI';
       let botNameTimer=null;
       botNameField.addEventListener('input',()=>{
         if(botNameTimer) clearTimeout(botNameTimer);
@@ -2987,7 +2987,7 @@ async function loadSettingsPanel(){
       const authStatus=await api('/api/auth/status');
       _setSettingsAuthButtonsVisible(!!authStatus.auth_enabled);
     }catch(e){}
-    _syncHermesPanelSessionActions();
+    _syncAvoiPanelSessionActions();
     loadProvidersPanel(); // load provider cards in background
     switchSettingsSection(_settingsSection);
   }catch(e){
@@ -3028,7 +3028,7 @@ function _buildProviderCard(p){
   card.className='provider-card';
   card.dataset.provider=p.id;
   // Use the is_oauth flag from the backend — it reflects _OAUTH_PROVIDERS in providers.py.
-  // key_source can be 'oauth' (hermes auth), 'config_yaml' (token in config.yaml), or 'none'.
+  // key_source can be 'oauth' (avoi auth), 'config_yaml' (token in config.yaml), or 'none'.
   const isOauth=p.is_oauth===true;
   const modelCount=Array.isArray(p.models)?p.models.length:0;
   const sourceLabel=p.key_source==='oauth'
@@ -3062,14 +3062,14 @@ function _buildProviderCard(p){
     const hint=document.createElement('div');
     hint.className='provider-card-hint';
     if(p.key_source==='config_yaml'){
-      hint.textContent=t('providers_oauth_config_yaml_hint')||'Token configured via config.yaml. To update, edit the providers section in your config.yaml or run hermes auth.';
+      hint.textContent=t('providers_oauth_config_yaml_hint')||'Token configured via config.yaml. To update, edit the providers section in your config.yaml or run avoi auth.';
     } else if(p.auth_error){
       hint.textContent=p.auth_error;
       hint.style.color='var(--accent)';
     } else if(p.has_key){
       hint.textContent=t('providers_oauth_hint');
     } else {
-      hint.textContent=t('providers_oauth_not_configured_hint')||'Not authenticated. Run hermes auth in the terminal to configure this provider.';
+      hint.textContent=t('providers_oauth_not_configured_hint')||'Not authenticated. Run avoi auth in the terminal to configure this provider.';
       hint.style.color='var(--muted)';
     }
     body.appendChild(hint);
@@ -3252,7 +3252,7 @@ function _applySavedSettingsUi(saved, body, opts){
   window._simplifiedToolCalling=body.simplified_tool_calling!==false;
   window._sidebarDensity=sidebarDensity==='detailed'?'detailed':'compact';
   window._busyInputMode=body.busy_input_mode||'queue';
-  window._botName=body.bot_name||'Hermes';
+  window._botName=body.bot_name||'AVOI';
   if(typeof applyBotName==='function') applyBotName();
   if(typeof setLocale==='function') setLocale(language);
   if(typeof applyLocaleToDOM==='function') applyLocaleToDOM();
@@ -3264,10 +3264,10 @@ function _applySavedSettingsUi(saved, body, opts){
   _settingsDirty=false;
   _settingsThemeOnOpen=theme;
   _settingsSkinOnOpen=skin||'default';
-  _settingsFontSizeOnOpen=fontSize||localStorage.getItem('hermes-font-size')||'default';
+  _settingsFontSizeOnOpen=fontSize||localStorage.getItem('avoi-font-size')||'default';
   const bar=$('settingsUnsavedBar');
   if(bar) bar.style.display='none';
-  _settingsHermesDefaultModelOnOpen=body.default_model||_settingsHermesDefaultModelOnOpen||'';
+  _settingsAvoiDefaultModelOnOpen=body.default_model||_settingsAvoiDefaultModelOnOpen||'';
   // Sync window._defaultModel so newSession() uses the just-saved default without a reload (#908).
   if(body.default_model) window._defaultModel=body.default_model;
   if(typeof clearMessageRenderCache==='function') clearMessageRenderCache();
@@ -3324,14 +3324,14 @@ async function checkUpdatesNow(){
 
 async function saveSettings(andClose){
   const model=($('settingsModel')||{}).value;
-  const modelChanged=(model||'')!==(_settingsHermesDefaultModelOnOpen||'');
+  const modelChanged=(model||'')!==(_settingsAvoiDefaultModelOnOpen||'');
   const sendKey=($('settingsSendKey')||{}).value;
   const showTokenUsage=!!($('settingsShowTokenUsage')||{}).checked;
   const showCliSessions=!!($('settingsShowCliSessions')||{}).checked;
   const pw=($('settingsPassword')||{}).value;
   const theme=($('settingsTheme')||{}).value||'dark';
   const skin=($('settingsSkin')||{}).value||'default';
-  const fontSize=($('settingsFontSize')||{}).value||localStorage.getItem('hermes-font-size')||'default';
+  const fontSize=($('settingsFontSize')||{}).value||localStorage.getItem('avoi-font-size')||'default';
   const language=($('settingsLanguage')||{}).value||'en';
   const sidebarDensity=($('settingsSidebarDensity')||{}).value==='detailed'?'detailed':'compact';
   const busyInputMode=($('settingsBusyInputMode')||{}).value||'queue';
@@ -3354,7 +3354,7 @@ async function saveSettings(andClose){
   body.busy_input_mode=busyInputMode;
   body.auto_title_refresh_every=(($('settingsAutoTitleRefresh')||{}).value||'0');
   const botName=(($('settingsBotName')||{}).value||'').trim();
-  body.bot_name=botName||'Hermes';
+  body.bot_name=botName||'AVOI';
   // Password: only act if the field has content; blank = leave auth unchanged
   if(pw && pw.trim()){
     try{
@@ -3432,7 +3432,7 @@ const _cronNewJobIds=new Set();  // track which job IDs had new completions (unr
 
 // Auto-refresh the cron list when a job is created from chat or any external source.
 // The chat path dispatches this event when the agent response mentions cron creation.
-window.addEventListener('hermes:cron_created', () => {
+window.addEventListener('avoi:cron_created', () => {
   if ($('cronList')) loadCrons();
 });
 

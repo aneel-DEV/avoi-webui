@@ -1,7 +1,7 @@
 {
-  "name": "Hermes",
-  "short_name": "Hermes",
-  "description": "Hermes AI Agent Web UI",
+  "name": "AVOI",
+  "short_name": "AVOI",
+  "description": "AVOI AI Agent Web UI",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#1a1a1a",

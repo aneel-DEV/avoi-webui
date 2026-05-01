@@ -1,12 +1,12 @@
 """
-Hermes Web UI -- Profile state management.
-Wraps hermes_cli.profiles to provide profile switching for the web UI.
+AVOI Web UI -- Profile state management.
+Wraps avoi_cli.profiles to provide profile switching for the web UI.
 
 The web UI maintains a process-level "active profile" that determines which
-HERMES_HOME directory is used for config, skills, memory, cron, and API keys.
-Profile switches update os.environ['HERMES_HOME'] and monkey-patch module-level
-cached paths in hermes-agent modules (skills_tool, cron/jobs) that snapshot
-HERMES_HOME at import time.
+AVOI_HOME directory is used for config, skills, memory, cron, and API keys.
+Profile switches update os.environ['AVOI_HOME'] and monkey-patch module-level
+cached paths in avoi-agent modules (skills_tool, cron/jobs) that snapshot
+AVOI_HOME at import time.
 """
 import json
 import logging
@@ -18,7 +18,7 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# ── Constants (match hermes_cli.profiles upstream) ─────────────────────────
+# ── Constants (match avoi_cli.profiles upstream) ─────────────────────────
 _PROFILE_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_-]{0,63}$')
 _PROFILE_DIRS = [
     'memories', 'sessions', 'skills', 'skins',
@@ -33,52 +33,52 @@ _loaded_profile_env_keys: set[str] = set()
 
 # Thread-local profile context: set per-request by server.py, cleared after.
 # Enables per-client profile isolation (issue #798) — each HTTP request thread
-# reads its own profile from the hermes_profile cookie instead of the
+# reads its own profile from the avoi_profile cookie instead of the
 # process-global _active_profile.
 _tls = threading.local()
 
-def _resolve_base_hermes_home() -> Path:
-    """Return the BASE ~/.hermes directory — the root that contains profiles/.
+def _resolve_base_avoi_home() -> Path:
+    """Return the BASE ~/.avoi directory — the root that contains profiles/.
 
-    This is intentionally distinct from HERMES_HOME, which tracks the *active
+    This is intentionally distinct from AVOI_HOME, which tracks the *active
     profile's* home and changes on every profile switch.  The base dir must
-    always point to the top-level .hermes regardless of which profile is active.
+    always point to the top-level .avoi regardless of which profile is active.
 
     Resolution order:
-      1. HERMES_BASE_HOME env var (set explicitly, highest priority)
-      2. HERMES_HOME env var — but only if it does NOT look like a profile subdir
+      1. AVOI_BASE_HOME env var (set explicitly, highest priority)
+      2. AVOI_HOME env var — but only if it does NOT look like a profile subdir
          (i.e. its parent is not named 'profiles').  This handles test isolation
-         where HERMES_HOME is set to an isolated test state dir.
-      3. ~/.hermes (always-correct default)
+         where AVOI_HOME is set to an isolated test state dir.
+      3. ~/.avoi (always-correct default)
 
-    The bug this prevents: if HERMES_HOME has already been mutated to
+    The bug this prevents: if AVOI_HOME has already been mutated to
     /home/user/.hermes/profiles/webui (by init_profile_state at startup),
-    reading it here would make _DEFAULT_HERMES_HOME point to that subdir,
+    reading it here would make _DEFAULT_AVOI_HOME point to that subdir,
     causing switch_profile('webui') to look for
     /home/user/.hermes/profiles/webui/profiles/webui — which doesn't exist.
     """
     # Explicit override for tests or unusual setups
-    base_override = os.getenv('HERMES_BASE_HOME', '').strip()
+    base_override = os.getenv('AVOI_BASE_HOME', '').strip()
     if base_override:
         return Path(base_override).expanduser()
 
-    hermes_home = os.getenv('HERMES_HOME', '').strip()
-    if hermes_home:
-        p = Path(hermes_home).expanduser()
-        # If HERMES_HOME points to a profiles/ subdir, walk up two levels to the base
+    avoi_home = os.getenv('AVOI_HOME', '').strip()
+    if avoi_home:
+        p = Path(avoi_home).expanduser()
+        # If AVOI_HOME points to a profiles/ subdir, walk up two levels to the base
         if p.parent.name == 'profiles':
             return p.parent.parent
-        # Otherwise trust it (e.g. test isolation sets HERMES_HOME to TEST_STATE_DIR)
+        # Otherwise trust it (e.g. test isolation sets AVOI_HOME to TEST_STATE_DIR)
         return p
 
-    return Path.home() / '.hermes'
+    return Path.home() / '.avoi'
 
-_DEFAULT_HERMES_HOME = _resolve_base_hermes_home()
+_DEFAULT_AVOI_HOME = _resolve_base_avoi_home()
 
 
 def _read_active_profile_file() -> str:
-    """Read the sticky active profile from ~/.hermes/active_profile."""
-    ap_file = _DEFAULT_HERMES_HOME / 'active_profile'
+    """Read the sticky active profile from ~/.avoi/active_profile."""
+    ap_file = _DEFAULT_AVOI_HOME / 'active_profile'
     if ap_file.exists():
         try:
             name = ap_file.read_text(encoding="utf-8").strip()
@@ -95,7 +95,7 @@ def get_active_profile_name() -> str:
     """Return the currently active profile name.
 
     Priority:
-      1. Thread-local (set per-request from hermes_profile cookie) — issue #798
+      1. Thread-local (set per-request from avoi_profile cookie) — issue #798
       2. Process-level default (_active_profile)
     """
     tls_name = getattr(_tls, 'profile', None)
@@ -107,7 +107,7 @@ def get_active_profile_name() -> str:
 def set_request_profile(name: str) -> None:
     """Set the per-request profile context for this thread.
 
-    Called by server.py at the start of each request when a hermes_profile
+    Called by server.py at the start of each request when a avoi_profile
     cookie is present.  Always paired with clear_request_profile() in a
     finally block so the thread-local is released after the request.
     """
@@ -123,37 +123,45 @@ def clear_request_profile() -> None:
     _tls.profile = None
 
 
-def get_active_hermes_home() -> Path:
-    """Return the HERMES_HOME path for the currently active profile.
+def get_active_avoi_home() -> Path:
+    """Return the AVOI_HOME path for the currently active profile.
 
     Uses get_active_profile_name() so per-request TLS context (issue #798)
     is respected, not just the process-level global.
     """
     name = get_active_profile_name()
     if name == 'default':
-        return _DEFAULT_HERMES_HOME
-    profile_dir = _DEFAULT_HERMES_HOME / 'profiles' / name
+        return _DEFAULT_AVOI_HOME
+    profile_dir = _DEFAULT_AVOI_HOME / 'profiles' / name
     if profile_dir.is_dir():
         return profile_dir
-    return _DEFAULT_HERMES_HOME
+    return _DEFAULT_AVOI_HOME
+
+
+# Backward-compatible alias
+get_active_avoi_home = get_active_avoi_home
 
 
 
-def get_hermes_home_for_profile(name: str) -> Path:
-    """Return the HERMES_HOME Path for *name* without mutating any process state.
+def get_avoi_home_for_profile(name: str) -> Path:
+    """Return the AVOI_HOME Path for *name* without mutating any process state.
 
     Safe to call from per-request context (streaming, session creation) because
     it reads only the filesystem — it never touches os.environ, module-level
     cached paths, or the process-level _active_profile global.
 
-    Falls back to _DEFAULT_HERMES_HOME (same as 'default') when *name* is None,
+    Falls back to _DEFAULT_AVOI_HOME (same as 'default') when *name* is None,
     empty, 'default', or does not match the profile-name format (rejects path
     traversal such as '../../etc').
     """
     if not name or name == 'default' or not _PROFILE_ID_RE.fullmatch(name):
-        return _DEFAULT_HERMES_HOME
-    profile_dir = _DEFAULT_HERMES_HOME / 'profiles' / name
+        return _DEFAULT_AVOI_HOME
+    profile_dir = _DEFAULT_AVOI_HOME / 'profiles' / name
     return profile_dir
+
+
+# Public alias for AVOI naming convention
+get_avoi_home_for_profile = get_avoi_home_for_profile
 
 
 _TERMINAL_ENV_MAPPINGS = {
@@ -199,7 +207,7 @@ def get_profile_runtime_env(home: Path) -> dict[str, str]:
     WebUI profile switching is per-client/cookie scoped, so it intentionally
     does not call ``switch_profile(..., process_wide=True)`` for every browser.
     Agent/tool code still consumes terminal backend settings through
-    environment variables (matching ``hermes -p <profile>``), so streaming must
+    environment variables (matching ``avoi -p <profile>``), so streaming must
     apply the selected profile's terminal config and ``.env`` for the duration
     of that run.
     """
@@ -239,14 +247,14 @@ def get_profile_runtime_env(home: Path) -> dict[str, str]:
     return env
 
 
-def _set_hermes_home(home: Path):
-    """Set HERMES_HOME env var and monkey-patch cached module-level paths."""
-    os.environ['HERMES_HOME'] = str(home)
+def _set_avoi_home(home: Path):
+    """Set AVOI_HOME env var and monkey-patch cached module-level paths."""
+    os.environ['AVOI_HOME'] = str(home)
 
-    # Patch skills_tool module-level cache (snapshots HERMES_HOME at import)
+    # Patch skills_tool module-level cache (snapshots AVOI_HOME at import)
     try:
         import tools.skills_tool as _sk
-        _sk.HERMES_HOME = home
+        _sk.AVOI_HOME = home
         _sk.SKILLS_DIR = home / 'skills'
     except (ImportError, AttributeError):
         logger.debug("Failed to patch skills_tool module")
@@ -254,7 +262,7 @@ def _set_hermes_home(home: Path):
     # Patch cron/jobs module-level cache
     try:
         import cron.jobs as _cj
-        _cj.HERMES_DIR = home
+        _cj.AVOI_DIR = home
         _cj.CRON_DIR = home / 'cron'
         _cj.JOBS_FILE = _cj.CRON_DIR / 'jobs.json'
         _cj.OUTPUT_DIR = _cj.CRON_DIR / 'output'
@@ -299,13 +307,13 @@ def _reload_dotenv(home: Path):
 def init_profile_state() -> None:
     """Initialize profile state at server startup.
 
-    Reads ~/.hermes/active_profile, sets HERMES_HOME env var, patches
+    Reads ~/.avoi/active_profile, sets AVOI_HOME env var, patches
     module-level cached paths.  Called once from config.py after imports.
     """
     global _active_profile
     _active_profile = _read_active_profile_file()
-    home = get_active_hermes_home()
-    _set_hermes_home(home)
+    home = get_active_avoi_home()
+    _set_avoi_home(home)
     _reload_dotenv(home)
 
 
@@ -339,7 +347,7 @@ def switch_profile(name: str, *, process_wide: bool = True) -> dict:
 
     # Resolve profile directory
     if name == 'default':
-        home = _DEFAULT_HERMES_HOME
+        home = _DEFAULT_AVOI_HOME
     else:
         home = _resolve_named_profile_home(name)
         if not home.is_dir():
@@ -349,13 +357,13 @@ def switch_profile(name: str, *, process_wide: bool = True) -> dict:
         if process_wide:
             global _active_profile
             _active_profile = name
-            _set_hermes_home(home)
+            _set_avoi_home(home)
             _reload_dotenv(home)
 
     if process_wide:
         # Write sticky default for CLI consistency
         try:
-            ap_file = _DEFAULT_HERMES_HOME / 'active_profile'
+            ap_file = _DEFAULT_AVOI_HOME / 'active_profile'
             ap_file.write_text(name if name != 'default' else '', encoding='utf-8')
         except Exception:
             logger.debug("Failed to write active profile file")
@@ -444,10 +452,10 @@ def switch_profile(name: str, *, process_wide: bool = True) -> dict:
 def list_profiles_api() -> list:
     """List all profiles with metadata, serialized for JSON response."""
     try:
-        from hermes_cli.profiles import list_profiles
+        from avoi_cli.profiles import list_profiles
         infos = list_profiles()
     except ImportError:
-        # hermes_cli not available -- return just the default
+        # avoi_cli not available -- return just the default
         return [_default_profile_dict()]
 
     active = get_active_profile_name()
@@ -468,22 +476,22 @@ def list_profiles_api() -> list:
 
 
 def _default_profile_dict() -> dict:
-    """Fallback profile dict when hermes_cli is not importable."""
+    """Fallback profile dict when avoi_cli is not importable."""
     return {
         'name': 'default',
-        'path': str(_DEFAULT_HERMES_HOME),
+        'path': str(_DEFAULT_AVOI_HOME),
         'is_default': True,
         'is_active': True,
         'gateway_running': False,
         'model': None,
         'provider': None,
-        'has_env': (_DEFAULT_HERMES_HOME / '.env').exists(),
+        'has_env': (_DEFAULT_AVOI_HOME / '.env').exists(),
         'skill_count': 0,
     }
 
 
 def _validate_profile_name(name: str):
-    """Validate profile name format (matches hermes_cli.profiles upstream)."""
+    """Validate profile name format (matches avoi_cli.profiles upstream)."""
     if name == 'default':
         raise ValueError("Cannot create a profile named 'default' -- it is the built-in profile.")
     # Use fullmatch (not match) so a trailing newline can't sneak past the $ anchor
@@ -496,14 +504,14 @@ def _validate_profile_name(name: str):
 
 def _profiles_root() -> Path:
     """Return the canonical root that contains named profiles."""
-    return (_DEFAULT_HERMES_HOME / 'profiles').resolve()
+    return (_DEFAULT_AVOI_HOME / 'profiles').resolve()
 
 
 def _resolve_named_profile_home(name: str) -> Path:
     """Resolve a named profile to a directory under the profiles root.
 
     Validates *name* as a logical profile identifier first, then resolves the
-    final filesystem path and enforces containment under ~/.hermes/profiles.
+    final filesystem path and enforces containment under ~/.avoi/profiles.
     """
     _validate_profile_name(name)
     profiles_root = _profiles_root()
@@ -514,8 +522,8 @@ def _resolve_named_profile_home(name: str) -> Path:
 
 def _create_profile_fallback(name: str, clone_from: str = None,
                               clone_config: bool = False) -> Path:
-    """Create a profile directory without hermes_cli (Docker/standalone fallback)."""
-    profile_dir = _DEFAULT_HERMES_HOME / 'profiles' / name
+    """Create a profile directory without avoi_cli (Docker/standalone fallback)."""
+    profile_dir = _DEFAULT_AVOI_HOME / 'profiles' / name
     if profile_dir.exists():
         raise FileExistsError(f"Profile '{name}' already exists.")
 
@@ -527,9 +535,9 @@ def _create_profile_fallback(name: str, clone_from: str = None,
     # Clone config files from source profile if requested
     if clone_config and clone_from:
         if clone_from == 'default':
-            source_dir = _DEFAULT_HERMES_HOME
+            source_dir = _DEFAULT_AVOI_HOME
         else:
-            source_dir = _DEFAULT_HERMES_HOME / 'profiles' / clone_from
+            source_dir = _DEFAULT_AVOI_HOME / 'profiles' / clone_from
         if source_dir.is_dir():
             for filename in _CLONE_CONFIG_FILES:
                 src = source_dir / filename
@@ -579,7 +587,7 @@ def create_profile_api(name: str, clone_from: str = None,
         _validate_profile_name(clone_from)
 
     try:
-        from hermes_cli.profiles import create_profile
+        from avoi_cli.profiles import create_profile
         create_profile(
             name,
             clone_from=clone_from,
@@ -591,10 +599,10 @@ def create_profile_api(name: str, clone_from: str = None,
         _create_profile_fallback(name, clone_from, clone_config)
 
     # Resolve the profile directory from the profile list when possible.
-    # hermes_cli and the webui runtime do not always agree on the exact root,
+    # avoi_cli and the webui runtime do not always agree on the exact root,
     # so we prefer the path returned by list_profiles_api() and fall back to the
     # standard profile location only if the profile cannot be found there yet.
-    profile_path = _DEFAULT_HERMES_HOME / 'profiles' / name
+    profile_path = _DEFAULT_AVOI_HOME / 'profiles' / name
     for p in list_profiles_api():
         if p['name'] == name:
             try:
@@ -607,7 +615,7 @@ def create_profile_api(name: str, clone_from: str = None,
     _write_endpoint_to_config(profile_path, base_url=base_url, api_key=api_key)
 
     # Find and return the newly created profile info.
-    # When hermes_cli is not importable, list_profiles_api() also falls back
+    # When avoi_cli is not importable, list_profiles_api() also falls back
     # to the stub default-only list and won't find the new profile by name.
     # In that case, return a complete profile dict directly.
     for p in list_profiles_api():
@@ -643,7 +651,7 @@ def delete_profile_api(name: str) -> dict:
             )
 
     try:
-        from hermes_cli.profiles import delete_profile
+        from avoi_cli.profiles import delete_profile
         delete_profile(name, yes=True)
     except ImportError:
         # Manual fallback: just remove the directory

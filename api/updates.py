@@ -1,7 +1,7 @@
 """
-Hermes Web UI -- Self-update checker.
+AVOI Web UI -- Self-update checker.
 
-Checks if the webui and hermes-agent git repos are behind their upstream
+Checks if the webui and avoi-agent git repos are behind their upstream
 branches. Results are cached server-side (30-min TTL) so git fetch runs
 at most twice per hour regardless of client count.
 

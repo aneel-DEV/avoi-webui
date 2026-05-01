@@ -48,25 +48,25 @@ write_worldtmpfile() {
   chmod 777 ${tmpfile}
 }
 
-itdir=/tmp/hermeswebui_init
+itdir=/tmp/avoiwebui_init
 if [ ! -d $itdir ]; then mkdir $itdir; chmod 777 $itdir; fi
 if [ ! -d $itdir ]; then error_exit "Failed to create $itdir"; fi
 
 # Set user and group id
 # logic: if not set and file exists, use file value, else use default. Create file for persistence when the container is re-run
-# reasoning: needed when using docker compose as the file will exist in the stopped container, and changing the value from environment variables or configuration file must be propagated from hermeswebuitoo to hermeswebuitoo transition (those values are the only ones loaded before the environment variables dump file are loaded)
-it=$itdir/hermeswebui_user_uid
+# reasoning: needed when using docker compose as the file will exist in the stopped container, and changing the value from environment variables or configuration file must be propagated from avoiwebuitoo to avoiwebuitoo transition (those values are the only ones loaded before the environment variables dump file are loaded)
+it=$itdir/avoiwebui_user_uid
 if [ -z "${WANTED_UID+x}" ]; then
   if [ -f $it ]; then WANTED_UID=$(cat $it); fi
 fi
 # Auto-detect from mounted volumes if still unset (#569, #668).
 # On macOS, host UIDs start at 501. Using the wrong UID means the container
 # user cannot read the bind-mounted files, making the workspace appear empty.
-# In two-container setups (hermes-agent + hermes-webui), the shared hermes-home
+# In two-container setups (avoi-agent + avoi-webui), the shared hermes-home
 # volume may be owned by the agent container's UID — detect from there first.
 if [ -z "${WANTED_UID+x}" ] || [ "${WANTED_UID}" = "1024" ]; then
   # Priority 1: hermes-home shared volume — covers two-container Zeabur/Compose setups (#668)
-  for _probe_dir in "/home/hermeswebui/.hermes" "$HERMES_HOME" "/opt/data"; do
+  for _probe_dir in "/home/avoiwebui/.avoi" "$AVOI_HOME" "/opt/data"; do
     if [ -d "$_probe_dir" ]; then
       _detected_uid=$(stat -c '%u' "$_probe_dir" 2>/dev/null || echo "")
       if [ -n "$_detected_uid" ] && [ "$_detected_uid" != "0" ]; then
@@ -91,14 +91,14 @@ WANTED_UID=${WANTED_UID:-1024}
 write_worldtmpfile $it "$WANTED_UID"
 echo "-- WANTED_UID: \"${WANTED_UID}\""
 
-it=$itdir/hermeswebui_user_gid
+it=$itdir/avoiwebui_user_gid
 if [ -z "${WANTED_GID+x}" ]; then
   if [ -f $it ]; then WANTED_GID=$(cat $it); fi
 fi
 # Auto-detect GID from mounted volumes to match (#569, #668)
 if [ -z "${WANTED_GID+x}" ] || [ "${WANTED_GID}" = "1024" ]; then
   # Priority 1: hermes-home shared volume
-  for _probe_dir in "/home/hermeswebui/.hermes" "$HERMES_HOME" "/opt/data"; do
+  for _probe_dir in "/home/avoiwebui/.avoi" "$AVOI_HOME" "/opt/data"; do
     if [ -d "$_probe_dir" ]; then
       _detected_gid=$(stat -c '%g' "$_probe_dir" 2>/dev/null || echo "")
       if [ -n "$_detected_gid" ] && [ "$_detected_gid" != "0" ]; then
@@ -180,84 +180,84 @@ load_env() {
   fi
 }
 
-# hermeswebuitoo is a specfiic user not existing by default on ubuntu, we can check its whomai
-if [ "A${whoami}" == "Ahermeswebuitoo" ]; then 
-  echo "-- Running as hermeswebuitoo, will switch hermeswebui to the desired UID/GID"
-  # The script is started as hermeswebuitoo -- UID/GID 1025/1025
+# avoiwebuitoo is a specfiic user not existing by default on ubuntu, we can check its whomai
+if [ "A${whoami}" == "Aavoiwebuitoo" ]; then 
+  echo "-- Running as avoiwebuitoo, will switch avoiwebui to the desired UID/GID"
+  # The script is started as avoiwebuitoo -- UID/GID 1025/1025
 
-  # We are altering the UID/GID of the hermeswebui user to the desired ones and restarting as that user
-  # using usermod for the already create hermeswebui user, knowing it is not already in use
+  # We are altering the UID/GID of the avoiwebui user to the desired ones and restarting as that user
+  # using usermod for the already create avoiwebui user, knowing it is not already in use
   # per usermod manual: "You must make certain that the named user is not executing any processes when this command is being executed"
-  sudo groupmod -o -g ${WANTED_GID} hermeswebui || error_exit "Failed to set GID of hermeswebui user"
-  sudo usermod -o -u ${WANTED_UID} hermeswebui || error_exit "Failed to set UID of hermeswebui user"
-  sudo chown -R ${WANTED_UID}:${WANTED_GID} /home/hermeswebui || error_exit "Failed to set owner of /home/hermeswebui"
-  save_env /tmp/hermeswebuitoo_env.txt  
-  # restart the script as hermeswebui set with the correct UID/GID this time
-  echo "-- Restarting as hermeswebui user with UID ${WANTED_UID} GID ${WANTED_GID}"
-  sudo su hermeswebui $script_fullname || error_exit "subscript failed"
+  sudo groupmod -o -g ${WANTED_GID} avoiwebui || error_exit "Failed to set GID of avoiwebui user"
+  sudo usermod -o -u ${WANTED_UID} avoiwebui || error_exit "Failed to set UID of avoiwebui user"
+  sudo chown -R ${WANTED_UID}:${WANTED_GID} /home/avoiwebui || error_exit "Failed to set owner of /home/avoiwebui"
+  save_env /tmp/avoiwebuitoo_env.txt  
+  # restart the script as avoiwebui set with the correct UID/GID this time
+  echo "-- Restarting as avoiwebui user with UID ${WANTED_UID} GID ${WANTED_GID}"
+  sudo su avoiwebui $script_fullname || error_exit "subscript failed"
   ok_exit "Clean exit"
 fi
 
-# If we are here, the script is started as another user than hermeswebuitoo
-# because the whoami value for the hermeswebui user can be any existing user, we can not check against it
+# If we are here, the script is started as another user than avoiwebuitoo
+# because the whoami value for the avoiwebui user can be any existing user, we can not check against it
 # instead we check if the UID/GID are the expected ones
-if [ "$WANTED_GID" != "$new_gid" ]; then error_exit "hermeswebui MUST be running as UID ${WANTED_UID} GID ${WANTED_GID}, current UID ${new_uid} GID ${new_gid}"; fi
-if [ "$WANTED_UID" != "$new_uid" ]; then error_exit "hermeswebui MUST be running as UID ${WANTED_UID} GID ${WANTED_GID}, current UID ${new_uid} GID ${new_gid}"; fi
+if [ "$WANTED_GID" != "$new_gid" ]; then error_exit "avoiwebui MUST be running as UID ${WANTED_UID} GID ${WANTED_GID}, current UID ${new_uid} GID ${new_gid}"; fi
+if [ "$WANTED_UID" != "$new_uid" ]; then error_exit "avoiwebui MUST be running as UID ${WANTED_UID} GID ${WANTED_GID}, current UID ${new_uid} GID ${new_gid}"; fi
 
-########## 'hermeswebui' specific section below
+########## 'avoiwebui' specific section below
 
-# We are therefore running as hermeswebui
-echo ""; echo "== Running as hermeswebui"
+# We are therefore running as avoiwebui
+echo ""; echo "== Running as avoiwebui"
 
-# Load environment variables one by one if they do not exist from /tmp/hermeswebuitoo_env.txt
-it=/tmp/hermeswebuitoo_env.txt
+# Load environment variables one by one if they do not exist from /tmp/avoiwebuitoo_env.txt
+it=/tmp/avoiwebuitoo_env.txt
 if [ -f $it ]; then
   echo "-- Loading not already set environment variables from $it"
   load_env $it true
 fi
 
 ##
-echo ""; echo "-- Making sure /app is owned by the hermeswebui user to avoid permission issues when running the server "
+echo ""; echo "-- Making sure /app is owned by the avoiwebui user to avoid permission issues when running the server "
 sudo mkdir -p /app || error_exit "Failed to create /app directory"
-sudo chown hermeswebui:hermeswebui /app || error_exit "Failed to set owner of /app to hermeswebui user"
-sudo rsync -av --chown=hermeswebui:hermeswebui /apptoo/ /app/ || error_exit "Failed to sync /apptoo to /app with correct ownership"
+sudo chown avoiwebui:avoiwebui /app || error_exit "Failed to set owner of /app to avoiwebui user"
+sudo rsync -av --chown=avoiwebui:avoiwebui /apptoo/ /app/ || error_exit "Failed to sync /apptoo to /app with correct ownership"
 it=/app/.testfile; touch $it || error_exit "Failed to verify /app directory"
 rm -f $it || error_exit "Failed to delete test file in /app"
 
 ######## Environment variables (consume AFTER the load_env)
 
-echo ""; echo "== Checking required environment variables for hermes-webui"
+echo ""; echo "== Checking required environment variables for avoi-webui"
 
-echo ""; echo "-- HERMES_WEBUI_VERSION: Where to store sessions, workspaces, and other state (default: ~/.hermes/webui-mvp)"
-if [ -z "${HERMES_WEBUI_STATE_DIR+x}" ]; then error_exit "HERMES_WEBUI_STATE_DIR not set"; fi; 
-echo "-- HERMES_WEBUI_STATE_DIR: $HERMES_WEBUI_STATE_DIR"
-if [ ! -d "$HERMES_WEBUI_STATE_DIR" ]; then mkdir -p $HERMES_WEBUI_STATE_DIR || error_exit "Failed to create state directory at $HERMES_WEBUI_STATE_DIR"; fi
-if [ ! -d "$HERMES_WEBUI_STATE_DIR" ]; then error_exit "HERMES_WEBUI_STATE_DIR directory does not exist at $HERMES_WEBUI_STATE_DIR"; fi
-it="$HERMES_WEBUI_STATE_DIR/.testfile"; touch $it || error_exit "Failed to verify state directory at $HERMES_WEBUI_STATE_DIR"
-rm -f $it || error_exit "Failed to delete test file in $HERMES_WEBUI_STATE_DIR"
+echo ""; echo "-- AVOI_WEBUI_VERSION: Where to store sessions, workspaces, and other state (default: ~/.avoi/webui-mvp)"
+if [ -z "${AVOI_WEBUI_STATE_DIR+x}" ]; then error_exit "AVOI_WEBUI_STATE_DIR not set"; fi; 
+echo "-- AVOI_WEBUI_STATE_DIR: $AVOI_WEBUI_STATE_DIR"
+if [ ! -d "$AVOI_WEBUI_STATE_DIR" ]; then mkdir -p $AVOI_WEBUI_STATE_DIR || error_exit "Failed to create state directory at $AVOI_WEBUI_STATE_DIR"; fi
+if [ ! -d "$AVOI_WEBUI_STATE_DIR" ]; then error_exit "AVOI_WEBUI_STATE_DIR directory does not exist at $AVOI_WEBUI_STATE_DIR"; fi
+it="$AVOI_WEBUI_STATE_DIR/.testfile"; touch $it || error_exit "Failed to verify state directory at $AVOI_WEBUI_STATE_DIR"
+rm -f $it || error_exit "Failed to delete test file in $AVOI_WEBUI_STATE_DIR"
 
-echo ""; echo "-- HERMES_WEBUI_DEFAULT_WORKSPACE: Default workspace directory shown on first launch"
-if [ -z "${HERMES_WEBUI_DEFAULT_WORKSPACE+x}" ]; then echo "HERMES_WEBUI_DEFAULT_WORKSPACE not set, setting to /workspace"; export HERMES_WEBUI_DEFAULT_WORKSPACE="/workspace"; fi;
-echo "-- HERMES_WEBUI_DEFAULT_WORKSPACE: $HERMES_WEBUI_DEFAULT_WORKSPACE"
+echo ""; echo "-- AVOI_WEBUI_DEFAULT_WORKSPACE: Default workspace directory shown on first launch"
+if [ -z "${AVOI_WEBUI_DEFAULT_WORKSPACE+x}" ]; then echo "AVOI_WEBUI_DEFAULT_WORKSPACE not set, setting to /workspace"; export AVOI_WEBUI_DEFAULT_WORKSPACE="/workspace"; fi;
+echo "-- AVOI_WEBUI_DEFAULT_WORKSPACE: $AVOI_WEBUI_DEFAULT_WORKSPACE"
 # Use sudo for mkdir — Docker may auto-create bind-mount directories as root (#357).
 # Skip mkdir if the directory already exists (e.g. a read-only mount — #670).
-if [ ! -d "$HERMES_WEBUI_DEFAULT_WORKSPACE" ]; then
-  sudo mkdir -p "$HERMES_WEBUI_DEFAULT_WORKSPACE" || error_exit "Failed to create default workspace at $HERMES_WEBUI_DEFAULT_WORKSPACE"
+if [ ! -d "$AVOI_WEBUI_DEFAULT_WORKSPACE" ]; then
+  sudo mkdir -p "$AVOI_WEBUI_DEFAULT_WORKSPACE" || error_exit "Failed to create default workspace at $AVOI_WEBUI_DEFAULT_WORKSPACE"
 fi
-if [ ! -d "$HERMES_WEBUI_DEFAULT_WORKSPACE" ]; then error_exit "HERMES_WEBUI_DEFAULT_WORKSPACE directory does not exist at $HERMES_WEBUI_DEFAULT_WORKSPACE"; fi
+if [ ! -d "$AVOI_WEBUI_DEFAULT_WORKSPACE" ]; then error_exit "AVOI_WEBUI_DEFAULT_WORKSPACE directory does not exist at $AVOI_WEBUI_DEFAULT_WORKSPACE"; fi
 # Only chown and write-test if the workspace is writable. Read-only bind-mounts
 # (:ro) are valid — the workspace is used for browsing, not writing by the server.
-if [ -w "$HERMES_WEBUI_DEFAULT_WORKSPACE" ]; then
-  sudo chown hermeswebui:hermeswebui "$HERMES_WEBUI_DEFAULT_WORKSPACE" || echo "!! WARNING: Could not chown $HERMES_WEBUI_DEFAULT_WORKSPACE (continuing)"
-  it="$HERMES_WEBUI_DEFAULT_WORKSPACE/.testfile"; touch $it && rm -f $it || echo "!! WARNING: Could not write to $HERMES_WEBUI_DEFAULT_WORKSPACE (continuing)"
+if [ -w "$AVOI_WEBUI_DEFAULT_WORKSPACE" ]; then
+  sudo chown avoiwebui:avoiwebui "$AVOI_WEBUI_DEFAULT_WORKSPACE" || echo "!! WARNING: Could not chown $AVOI_WEBUI_DEFAULT_WORKSPACE (continuing)"
+  it="$AVOI_WEBUI_DEFAULT_WORKSPACE/.testfile"; touch $it && rm -f $it || echo "!! WARNING: Could not write to $AVOI_WEBUI_DEFAULT_WORKSPACE (continuing)"
 else
-  echo "-- HERMES_WEBUI_DEFAULT_WORKSPACE is read-only — skipping chown/write check (read-only workspace is supported)"
+  echo "-- AVOI_WEBUI_DEFAULT_WORKSPACE is read-only — skipping chown/write check (read-only workspace is supported)"
 fi
 
 echo ""; echo "==================="
-echo ""; echo "== Installing uv and creating a new virtual environment for hermes-webui"
+echo ""; echo "== Installing uv and creating a new virtual environment for avoi-webui"
 
-export PATH="/home/hermeswebui/.local/bin/:$PATH"
+export PATH="/home/avoiwebui/.local/bin/:$PATH"
 if command -v uv &>/dev/null; then
   echo "-- uv already installed ($(uv --version)), skipping download"
 else
@@ -268,7 +268,7 @@ export UV_PROJECT_ENVIRONMENT=venv
 
 export UV_CACHE_DIR=/uv_cache
 sudo mkdir -p ${UV_CACHE_DIR} || error_exit "Failed to create /uv_cache directory"
-sudo chown hermeswebui:hermeswebui ${UV_CACHE_DIR} || error_exit "Failed to set owner of ${UV_CACHE_DIR} to hermeswebui user"
+sudo chown avoiwebui:avoiwebui ${UV_CACHE_DIR} || error_exit "Failed to set owner of ${UV_CACHE_DIR} to avoiwebui user"
 
 cd /app
 if [ -f /app/venv/bin/python3 ]; then
@@ -282,7 +282,7 @@ test -d /app/venv
 test -f /app/venv/bin/activate
 
 echo "";echo "== Activating hermes webui's virtual environment"
-source /app/venv/bin/activate || error_exit "Failed to activate hermeswebui virtual environment"
+source /app/venv/bin/activate || error_exit "Failed to activate avoiwebui virtual environment"
 test -x /app/venv/bin/python3
 
 ensure_hindsight_client_docker_dependency() {
@@ -301,14 +301,14 @@ ensure_hindsight_client_docker_dependency() {
 if [ -f /app/venv/.deps_installed ]; then
   echo ""; echo "== Dependencies already installed — skipping (fast restart)"
 else
-  echo ""; echo "== Installing hermes-webui dependencies"
+  echo ""; echo "== Installing avoi-webui dependencies"
   uv pip install -r requirements.txt --trusted-host pypi.org --trusted-host files.pythonhosted.org
   uv pip install -U pip setuptools --trusted-host pypi.org --trusted-host files.pythonhosted.org
   test -x /app/venv/bin/pip
 
-  echo ""; echo "== Adding hermes-agent's pyproject.toml base dependencies to the virtual environment"
+  echo ""; echo "== Adding avoi-agent's pyproject.toml base dependencies to the virtual environment"
   _agent_paths=(
-    "/home/hermeswebui/.hermes/hermes-agent"
+    "/home/avoiwebui/.avoi/avoi-agent"
     "/opt/hermes"
   )
   _agent_src=""
@@ -319,18 +319,18 @@ else
     fi
   done
   if [ -n "$_agent_src" ]; then
-    uv pip install "$_agent_src[all]" --trusted-host pypi.org --trusted-host files.pythonhosted.org || error_exit "Failed to install hermes-agent's requirements"
+    uv pip install "$_agent_src[all]" --trusted-host pypi.org --trusted-host files.pythonhosted.org || error_exit "Failed to install avoi-agent's requirements"
   else
     echo ""
-    echo "!! WARNING: hermes-agent source not found."
+    echo "!! WARNING: avoi-agent source not found."
     echo "!!   Looked in: ${_agent_paths[0]}"
     echo "!!              ${_agent_paths[1]}"
     echo "!! The WebUI will start with reduced functionality (no model auto-detection,"
     echo "!! no personality routing, no CLI session imports)."
     echo "!! To fix: mount the agent source volume into the container:"
-    echo "!!   -v /path/to/hermes-agent:/home/hermeswebui/.hermes/hermes-agent"
+    echo "!!   -v /path/to/avoi-agent:/home/avoiwebui/.avoi/avoi-agent"
     echo "!! Or see the two-container compose example:"
-    echo "!!   https://github.com/nesquena/hermes-webui/blob/master/docker-compose.two-container.yml"
+    echo "!!   https://github.com/nesquena/avoi-webui/blob/master/docker-compose.two-container.yml"
     echo ""
   fi
   touch /app/venv/.deps_installed
@@ -338,8 +338,8 @@ fi
 
 ensure_hindsight_client_docker_dependency
 
-echo ""; echo "== Running hermes-webui"
-cd /app; python server.py || error_exit "hermes-webui failed or exited with an error"
+echo ""; echo "== Running avoi-webui"
+cd /app; python server.py || error_exit "avoi-webui failed or exited with an error"
 
 # we should never be here because the server should be running indefinitely, but if we are, we exit safely
 ok_exit "Clean exit"

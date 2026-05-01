@@ -1,5 +1,5 @@
 """
-Hermes Web UI -- Shared configuration, constants, and global state.
+AVOI Web UI -- Shared configuration, constants, and global state.
 Imported by all other api/* modules and by server.py.
 
 Discovery order for all paths:
@@ -28,17 +28,17 @@ HOME = Path.home()
 REPO_ROOT = Path(__file__).parent.parent.resolve()
 
 # ── Network config (env-overridable) ─────────────────────────────────────────
-HOST = os.getenv("HERMES_WEBUI_HOST", "127.0.0.1")
-PORT = int(os.getenv("HERMES_WEBUI_PORT", "8787"))
+HOST = os.getenv("AVOI_WEBUI_HOST", "127.0.0.1")
+PORT = int(os.getenv("AVOI_WEBUI_PORT", "8787"))
 
 # ── TLS/HTTPS config (optional, env-overridable) ────────────────────────────
-TLS_CERT = os.getenv("HERMES_WEBUI_TLS_CERT", "").strip() or None
-TLS_KEY = os.getenv("HERMES_WEBUI_TLS_KEY", "").strip() or None
+TLS_CERT = os.getenv("AVOI_WEBUI_TLS_CERT", "").strip() or None
+TLS_KEY = os.getenv("AVOI_WEBUI_TLS_KEY", "").strip() or None
 TLS_ENABLED = TLS_CERT is not None and TLS_KEY is not None
 
 # ── State directory (env-overridable, never inside repo) ──────────────────────
 STATE_DIR = (
-    Path(os.getenv("HERMES_WEBUI_STATE_DIR", str(HOME / ".hermes" / "webui")))
+    Path(os.getenv("AVOI_WEBUI_STATE_DIR", str(HOME / ".avoi" / "webui")))
     .expanduser()
     .resolve()
 )
@@ -53,51 +53,51 @@ PROJECTS_FILE = STATE_DIR / "projects.json"
 logger = logging.getLogger(__name__)
 
 
-# ── Hermes agent directory discovery ─────────────────────────────────────────
+# ── AVOI agent directory discovery ─────────────────────────────────────────
 def _discover_agent_dir() -> Path:
     """
-    Locate the hermes-agent checkout using a multi-strategy search.
+    Locate the avoi-agent checkout using a multi-strategy search.
 
     Priority:
-      1. HERMES_WEBUI_AGENT_DIR env var  -- explicit override always wins
-      2. HERMES_HOME / hermes-agent      -- e.g. ~/.hermes/hermes-agent
-      3. Sibling of this repo            -- ../hermes-agent
-      4. Parent of this repo             -- ../../hermes-agent (nested layout)
-      5. Common install paths            -- ~/.hermes/hermes-agent (again as fallback)
-      6. HOME / hermes-agent             -- ~/hermes-agent (simple flat layout)
+      1. AVOI_WEBUI_AGENT_DIR env var  -- explicit override always wins
+      2. AVOI_HOME / avoi-agent      -- e.g. ~/.avoi/avoi-agent
+      3. Sibling of this repo            -- ../avoi-agent
+      4. Parent of this repo             -- ../../avoi-agent (nested layout)
+      5. Common install paths            -- ~/.avoi/avoi-agent (again as fallback)
+      6. HOME / avoi-agent             -- ~/avoi-agent (simple flat layout)
     """
     candidates = []
 
     # 1. Explicit env var
-    if os.getenv("HERMES_WEBUI_AGENT_DIR"):
+    if os.getenv("AVOI_WEBUI_AGENT_DIR"):
         candidates.append(
-            Path(os.getenv("HERMES_WEBUI_AGENT_DIR")).expanduser().resolve()
+            Path(os.getenv("AVOI_WEBUI_AGENT_DIR")).expanduser().resolve()
         )
 
-    # 2. HERMES_HOME / hermes-agent
-    hermes_home = os.getenv("HERMES_HOME", str(HOME / ".hermes"))
-    candidates.append(Path(hermes_home).expanduser() / "hermes-agent")
+    # 2. AVOI_HOME / avoi-agent
+    avoi_home = os.getenv("AVOI_HOME", str(HOME / ".avoi"))
+    candidates.append(Path(avoi_home).expanduser() / "avoi-agent")
 
-    # 3. Sibling: <repo-root>/../hermes-agent
-    candidates.append(REPO_ROOT.parent / "hermes-agent")
+    # 3. Sibling: <repo-root>/../avoi-agent
+    candidates.append(REPO_ROOT.parent / "avoi-agent")
 
-    # 4. Parent is the agent repo itself (repo cloned inside hermes-agent/)
+    # 4. Parent is the agent repo itself (repo cloned inside avoi-agent/)
     if (REPO_ROOT.parent / "run_agent.py").exists():
         candidates.append(REPO_ROOT.parent)
 
-    # 5. ~/.hermes/hermes-agent (explicit common path)
-    candidates.append(HOME / ".hermes" / "hermes-agent")
+    # 5. ~/.avoi/avoi-agent (explicit common path)
+    candidates.append(HOME / ".avoi" / "avoi-agent")
 
-    # 6. ~/hermes-agent
-    candidates.append(HOME / "hermes-agent")
+    # 6. ~/avoi-agent
+    candidates.append(HOME / "avoi-agent")
 
-    # 7. XDG_DATA_HOME / hermes-agent  (e.g. ~/.local/share/hermes-agent)
+    # 7. XDG_DATA_HOME / avoi-agent  (e.g. ~/.local/share/avoi-agent)
     xdg_data = Path(os.getenv("XDG_DATA_HOME", str(HOME / ".local" / "share")))
-    candidates.append(xdg_data.expanduser() / "hermes-agent")
+    candidates.append(xdg_data.expanduser() / "avoi-agent")
 
-    # 8. System-wide install paths (e.g. /opt/hermes-agent, /usr/local/hermes-agent)
+    # 8. System-wide install paths (e.g. /opt/avoi-agent, /usr/local/avoi-agent)
     for sys_prefix in ("/opt", "/usr/local", "/usr/local/share"):
-        candidates.append(Path(sys_prefix) / "hermes-agent")
+        candidates.append(Path(sys_prefix) / "avoi-agent")
 
     for path in candidates:
         if path.exists() and (path / "run_agent.py").exists():
@@ -108,16 +108,16 @@ def _discover_agent_dir() -> Path:
 
 def _discover_python(agent_dir: Path) -> str:
     """
-    Locate a Python executable that has the Hermes agent dependencies installed.
+    Locate a Python executable that has the AVOI agent dependencies installed.
 
     Priority:
-      1. HERMES_WEBUI_PYTHON env var
+      1. AVOI_WEBUI_PYTHON env var
       2. Agent venv at <agent_dir>/venv/bin/python
       3. Local .venv inside this repo
       4. System python3
     """
-    if os.getenv("HERMES_WEBUI_PYTHON"):
-        return os.getenv("HERMES_WEBUI_PYTHON")
+    if os.getenv("AVOI_WEBUI_PYTHON"):
+        return os.getenv("AVOI_WEBUI_PYTHON")
 
     if agent_dir:
         venv_py = agent_dir / "venv" / "bin" / "python"
@@ -157,27 +157,27 @@ def _discover_python(agent_dir: Path) -> str:
 _AGENT_DIR = _discover_agent_dir()
 PYTHON_EXE = _discover_python(_AGENT_DIR)
 
-# ── Inject agent dir into sys.path so Hermes modules are importable ──────────
+# ── Inject agent dir into sys.path so AVOI modules are importable ──────────
 
 # When users (or CI builds) run `pip install --target .` or
-# `pip install -t .` inside the hermes-agent checkout, third-party
+# `pip install -t .` inside the avoi-agent checkout, third-party
 # package directories (openai/, pydantic/, requests/, etc.) end up
-# alongside real Hermes source files.  Putting _AGENT_DIR at the
+# alongside real AVOI source files.  Putting _AGENT_DIR at the
 # FRONT of sys.path means Python resolves `import pydantic` from that
 # local directory — which breaks whenever the host platform differs
 # from the container (e.g. macOS .so files inside a Linux image).
 #
 # Fix: insert _AGENT_DIR at the END of sys.path.  Python searches
 # entries in order, so site-packages resolves pip packages correctly,
-# and Hermes-specific modules (run_agent, hermes/, etc.) still
+# and AVOI-specific modules (run_agent, avoi/, etc.) still
 # resolve because they do not exist in site-packages.
 
 if _AGENT_DIR is not None:
     if str(_AGENT_DIR) not in sys.path:
         sys.path.append(str(_AGENT_DIR))
-    _HERMES_FOUND = True
+    _AVOI_FOUND = True
 else:
-    _HERMES_FOUND = False
+    _AVOI_FOUND = False
 
 # ── Config file (reloadable -- supports profile switching) ──────────────────
 _cfg_cache = {}
@@ -187,15 +187,15 @@ _cfg_mtime: float = 0.0  # last known mtime of config.yaml; 0 = never loaded
 
 def _get_config_path() -> Path:
     """Return config.yaml path for the active profile."""
-    env_override = os.getenv("HERMES_CONFIG_PATH")
+    env_override = os.getenv("AVOI_CONFIG_PATH")
     if env_override:
         return Path(env_override).expanduser()
     try:
-        from api.profiles import get_active_hermes_home
+        from api.profiles import get_active_avoi_home
 
-        return get_active_hermes_home() / "config.yaml"
+        return get_active_avoi_home() / "config.yaml"
     except ImportError:
-        return HOME / ".hermes" / "config.yaml"
+        return HOME / ".avoi" / "config.yaml"
 
 
 def get_config() -> dict:
@@ -256,7 +256,7 @@ def _save_yaml_config_file(config_path: Path, config_data: dict) -> None:
     try:
         import yaml as _yaml
     except ImportError as exc:
-        raise RuntimeError("PyYAML is required to write Hermes config.yaml") from exc
+        raise RuntimeError("PyYAML is required to write AVOI config.yaml") from exc
 
     config_path.parent.mkdir(parents=True, exist_ok=True)
     config_path.write_text(
@@ -286,8 +286,8 @@ def _workspace_candidates(raw: str | Path | None = None) -> list[Path]:
             candidates.append(path)
 
     add(raw)
-    if os.getenv("HERMES_WEBUI_DEFAULT_WORKSPACE"):
-        add(os.getenv("HERMES_WEBUI_DEFAULT_WORKSPACE"))
+    if os.getenv("AVOI_WEBUI_DEFAULT_WORKSPACE"):
+        add(os.getenv("AVOI_WEBUI_DEFAULT_WORKSPACE"))
 
     home_workspace = HOME / "workspace"
     home_work = HOME / "work"
@@ -320,7 +320,7 @@ def resolve_default_workspace(raw: str | Path | None = None) -> Path:
             return candidate
     raise RuntimeError(
         "Could not create or access any usable workspace directory. "
-        "Set HERMES_WEBUI_DEFAULT_WORKSPACE to a writable path."
+        "Set AVOI_WEBUI_DEFAULT_WORKSPACE to a writable path."
     )
 
 
@@ -328,7 +328,7 @@ def resolve_default_workspace(raw: str | Path | None = None) -> Path:
 def _discover_default_workspace() -> Path:
     """
     Resolve the default workspace in order:
-      1. HERMES_WEBUI_DEFAULT_WORKSPACE env var
+      1. AVOI_WEBUI_DEFAULT_WORKSPACE env var
       2. ~/workspace if it already exists
       3. ~/work if it already exists
       4. ~/workspace (create if needed)
@@ -338,7 +338,7 @@ def _discover_default_workspace() -> Path:
 
 
 DEFAULT_WORKSPACE = _discover_default_workspace()
-DEFAULT_MODEL = os.getenv("HERMES_WEBUI_DEFAULT_MODEL", "")  # Empty = use provider default; avoids showing unavailable OpenAI model to non-OpenAI users (#646)
+DEFAULT_MODEL = os.getenv("AVOI_WEBUI_DEFAULT_MODEL", "")  # Empty = use provider default; avoids showing unavailable OpenAI model to non-OpenAI users (#646)
 
 
 # ── Startup diagnostics ───────────────────────────────────────────────────────
@@ -350,7 +350,7 @@ def print_startup_config() -> None:
 
     lines = [
         "",
-        "  Hermes Web UI -- startup config",
+        "  AVOI Web UI -- startup config",
         "  --------------------------------",
         f"  repo root   : {REPO_ROOT}",
         f"  agent dir   : {_AGENT_DIR if _AGENT_DIR else 'NOT FOUND'}  {ok if _AGENT_DIR else err}",
@@ -363,24 +363,24 @@ def print_startup_config() -> None:
     ]
     print("\n".join(lines), flush=True)
 
-    if not _HERMES_FOUND:
+    if not _AVOI_FOUND:
         print(
-            f"{err}  Could not find the Hermes agent directory.\n"
+            f"{err}  Could not find the AVOI agent directory.\n"
             "      The server will start but agent features will not work.\n"
             "\n"
             "      To fix, set one of:\n"
-            "        export HERMES_WEBUI_AGENT_DIR=/path/to/hermes-agent\n"
-            "        export HERMES_HOME=/path/to/.hermes\n"
+            "        export AVOI_WEBUI_AGENT_DIR=/path/to/avoi-agent\n"
+            "        export AVOI_HOME=/path/to/.avoi\n"
             "\n"
-            "      Or clone hermes-agent as a sibling of this repo:\n"
-            "        git clone <hermes-agent-repo> ../hermes-agent\n",
+            "      Or clone avoi-agent as a sibling of this repo:\n"
+            "        git clone <avoi-agent-repo> ../avoi-agent\n",
             flush=True,
         )
 
 
-def verify_hermes_imports() -> tuple:
+def verify_avoi_imports() -> tuple:
     """
-    Attempt to import the key Hermes modules.
+    Attempt to import the key AVOI modules.
     Returns (ok: bool, missing: list[str], errors: dict[str, str]).
     """
     required = ["run_agent"]
@@ -486,7 +486,7 @@ def _resolve_cli_toolsets(cfg=None):
     if cfg is None:
         cfg = get_config()
     try:
-        from hermes_cli.tools_config import _get_platform_tools
+        from avoi_cli.tools_config import _get_platform_tools
         return list(_get_platform_tools(cfg, "cli"))
     except Exception:
         # Fallback: read raw list from config (MCP toolsets will be missing)
@@ -538,7 +538,7 @@ _FALLBACK_MODELS = [
     {"provider": "Z.AI",      "id": "zai/glm-4.5-flash",                "label": "GLM-4.5 Flash"},
 ]
 
-# Provider display names for known Hermes provider IDs
+# Provider display names for known AVOI provider IDs
 _PROVIDER_DISPLAY = {
     "nous": "Nous Portal",
     "openrouter": "OpenRouter",
@@ -573,11 +573,11 @@ _PROVIDER_DISPLAY = {
 # normalisation the provider lands in the ``else`` branch of the group
 # builder and no models are returned — the bug behind #815.
 #
-# This table is authoritative for the WebUI.  When ``hermes_cli.models``
+# This table is authoritative for the WebUI.  When ``avoi_cli.models``
 # is importable we also merge its ``_PROVIDER_ALIASES`` on top so any
 # new aliases added to the agent automatically apply.  Keeping the local
 # copy means the fix works even in environments where the agent tree is
-# not on ``sys.path`` (CI, installs without hermes-agent cloned
+# not on ``sys.path`` (CI, installs without avoi-agent cloned
 # alongside the WebUI).
 _PROVIDER_ALIASES = {
     "glm": "zai",
@@ -616,7 +616,7 @@ _PROVIDER_ALIASES = {
     "nemotron": "nvidia",
     # Legacy alias — earlier WebUI builds wrote ``provider: local`` for unknown
     # loopback endpoints, but ``local`` is not registered in
-    # ``hermes_cli.auth.PROVIDER_REGISTRY``. Routing it through ``custom``
+    # ``avoi_cli.auth.PROVIDER_REGISTRY``. Routing it through ``custom``
     # lets the agent's auxiliary client take the ``no-key-required``
     # OpenAI-compat path. See #1384.
     "local": "custom",
@@ -627,7 +627,7 @@ def _resolve_provider_alias(name: str) -> str:
     """Return the canonical provider slug for *name*.
 
     Applies the WebUI's local alias table first, then merges any
-    additional aliases the agent provides (when hermes_cli is on
+    additional aliases the agent provides (when avoi_cli is on
     sys.path). Lookup is case-insensitive and whitespace-trimmed.
     Unknown names pass through unchanged.
     """
@@ -637,7 +637,7 @@ def _resolve_provider_alias(name: str) -> str:
     # Prefer the agent's table when available so new aliases added there
     # work automatically; otherwise fall through to our local copy.
     try:
-        from hermes_cli.models import _PROVIDER_ALIASES as _agent_aliases
+        from avoi_cli.models import _PROVIDER_ALIASES as _agent_aliases
         if raw in _agent_aliases:
             return _agent_aliases[raw]
     except Exception:
@@ -785,7 +785,7 @@ _PROVIDER_MODELS = {
         {"id": "qwen3.6-plus",     "label": "Qwen3.6 Plus"},
         {"id": "qwen3.5-plus",     "label": "Qwen3.5 Plus"},
     ],
-    # 'gemini' is the hermes_cli provider ID for Google AI Studio
+    # 'gemini' is the avoi_cli provider ID for Google AI Studio
     # Model IDs are bare — sent directly to:
     #   https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
     "gemini": [
@@ -1057,7 +1057,7 @@ def resolve_model_provider(model_id: str) -> tuple:
 
 
 def get_effective_default_model(config_data: dict | None = None) -> str:
-    """Resolve the effective Hermes default model from config, then env overrides."""
+    """Resolve the effective AVOI default model from config, then env overrides."""
     active_cfg = config_data if config_data is not None else cfg
     default_model = DEFAULT_MODEL
 
@@ -1070,7 +1070,7 @@ def get_effective_default_model(config_data: dict | None = None) -> str:
             default_model = cfg_default
 
     env_model = (
-        os.getenv("HERMES_MODEL") or os.getenv("OPENAI_MODEL") or os.getenv("LLM_MODEL")
+        os.getenv("AVOI_MODEL") or os.getenv("OPENAI_MODEL") or os.getenv("LLM_MODEL")
     )
     if env_model:
         default_model = env_model.strip()
@@ -1078,7 +1078,7 @@ def get_effective_default_model(config_data: dict | None = None) -> str:
 
 
 # ── Reasoning config (CLI parity for /reasoning) ─────────────────────────────
-# Mirrors hermes_constants.parse_reasoning_effort so WebUI can validate without
+# Mirrors avoi_constants.parse_reasoning_effort so WebUI can validate without
 # importing from the agent tree (which may not be installed).  Any drift here
 # will show up in the shared test suite since both sides accept the same set.
 VALID_REASONING_EFFORTS = ("minimal", "low", "medium", "high", "xhigh")
@@ -1170,8 +1170,8 @@ def set_reasoning_effort(effort: str) -> dict:
     return get_reasoning_status()
 
 
-def set_hermes_default_model(model_id: str) -> dict:
-    """Persist the Hermes default model in config.yaml and reload runtime config."""
+def set_avoi_default_model(model_id: str) -> dict:
+    """Persist the AVOI default model in config.yaml and reload runtime config."""
     selected_model = str(model_id or "").strip()
     if not selected_model:
         raise ValueError("model is required")
@@ -1191,9 +1191,9 @@ def set_hermes_default_model(model_id: str) -> dict:
             selected_model
         )
         # Persist the resolved bare/slash form, NOT the `@provider:` prefix. The
-        # prefix is a WebUI-internal routing hint that the hermes-agent CLI does
+        # prefix is a WebUI-internal routing hint that the avoi-agent CLI does
         # not understand — if we wrote `@nous:anthropic/claude-opus-4.6` to
-        # config.yaml, a user who ran `hermes` in the terminal right after
+        # config.yaml, a user who ran `avoi` in the terminal right after
         # saving via WebUI would have the agent send that literal string to the
         # Nous API, which would reject it (Nous expects `anthropic/claude-opus-4.6`,
         # not the prefixed form). The Settings picker handles the resulting
@@ -1255,7 +1255,7 @@ _provider_models_invalidated_ts: dict[str, float] = {}  # provider_id -> timesta
 # signal is somehow missed, but the cache will always be warm after the first
 # page load following a server start.
 # Cache file lives inside STATE_DIR so each server instance (different
-# HERMES_WEBUI_STATE_DIR / port) has its own file and test runs never
+# AVOI_WEBUI_STATE_DIR / port) has its own file and test runs never
 # pollute the production server's cache. Also works on macOS and Windows
 # where /dev/shm does not exist.
 _models_cache_path = STATE_DIR / "models_cache.json"
@@ -1427,7 +1427,7 @@ def get_available_models() -> dict:
 
     Discovery order:
       1. Read config.yaml 'model' section for active provider info
-      2. Check for known API keys in env or ~/.hermes/.env
+      2. Check for known API keys in env or ~/.avoi/.env
       3. Fetch models from custom endpoint if base_url is configured
       4. Fall back to hardcoded model list (OpenRouter-style)
 
@@ -1566,11 +1566,11 @@ def get_available_models() -> dict:
         # 2. Read auth store (active_provider fallback + credential_pool inspection)
         auth_store = {}
         try:
-            from api.profiles import get_active_hermes_home as _gah
+            from api.profiles import get_active_avoi_home as _gah
 
             auth_store_path = _gah() / "auth.json"
         except ImportError:
-            auth_store_path = HOME / ".hermes" / "auth.json"
+            auth_store_path = HOME / ".avoi" / "auth.json"
         if auth_store_path.exists():
             try:
                 import json as _j
@@ -1643,10 +1643,10 @@ def get_available_models() -> dict:
 
         all_env: dict = {}
 
-        _hermes_auth_used = False
+        _avoi_auth_used = False
         try:
-            from hermes_cli.models import list_available_providers as _lap
-            from hermes_cli.auth import get_auth_status as _gas
+            from avoi_cli.models import list_available_providers as _lap
+            from avoi_cli.auth import get_auth_status as _gas
 
             for _p in _lap():
                 if not _p.get("authenticated"):
@@ -1658,27 +1658,27 @@ def get_available_models() -> dict:
                 except Exception:
                     logger.debug("Failed to get key source for provider %s", _p.get("id", "unknown"))
                 detected_providers.add(_p["id"])
-            _hermes_auth_used = True
+            _avoi_auth_used = True
         except Exception:
-            logger.debug("Failed to detect auth providers from hermes")
+            logger.debug("Failed to detect auth providers from avoi")
 
-        if not _hermes_auth_used:
+        if not _avoi_auth_used:
             try:
-                from api.profiles import get_active_hermes_home as _gah2
+                from api.profiles import get_active_avoi_home as _gah2
 
-                hermes_env_path = _gah2() / ".env"
+                avoi_env_path = _gah2() / ".env"
             except ImportError:
-                hermes_env_path = HOME / ".hermes" / ".env"
+                avoi_env_path = HOME / ".avoi" / ".env"
             env_keys = {}
-            if hermes_env_path.exists():
+            if avoi_env_path.exists():
                 try:
-                    for line in hermes_env_path.read_text(encoding="utf-8").splitlines():
+                    for line in avoi_env_path.read_text(encoding="utf-8").splitlines():
                         line = line.strip()
                         if line and not line.startswith("#") and "=" in line:
                             k, v = line.split("=", 1)
                             env_keys[k.strip()] = v.strip().strip('"').strip("'")
                 except Exception:
-                    logger.debug("Failed to parse hermes env file")
+                    logger.debug("Failed to parse avoi env file")
             all_env = {**env_keys}
             for k in (
                 "ANTHROPIC_API_KEY",
@@ -1776,7 +1776,7 @@ def get_available_models() -> dict:
                                 # ``provider: local`` here used to break
                                 # compression mid-conversation because ``local``
                                 # is not a registered provider in
-                                # ``hermes_cli.auth.PROVIDER_REGISTRY`` — see #1384.
+                                # ``avoi_cli.auth.PROVIDER_REGISTRY`` — see #1384.
                                 provider = "custom"
                     except ValueError:
                         pass
@@ -1796,8 +1796,8 @@ def get_available_models() -> dict:
                                     break
                 if not api_key:
                     api_key_vars = (
-                        "HERMES_API_KEY",
-                        "HERMES_OPENAI_API_KEY",
+                        "AVOI_API_KEY",
+                        "AVOI_OPENAI_API_KEY",
                         "OPENAI_API_KEY",
                         "LOCAL_API_KEY",
                         "OPENROUTER_API_KEY",
@@ -1973,14 +1973,14 @@ def get_available_models() -> dict:
                 elif pid == "ollama-cloud":
                     raw_models = []
                     try:
-                        from hermes_cli.models import provider_model_ids as _provider_model_ids
+                        from avoi_cli.models import provider_model_ids as _provider_model_ids
 
                         raw_models = [
                             {"id": mid, "label": _format_ollama_label(mid)}
                             for mid in (_provider_model_ids("ollama-cloud") or [])
                         ]
                     except Exception:
-                        logger.warning("Failed to load Ollama Cloud models from hermes_cli")
+                        logger.warning("Failed to load Ollama Cloud models from avoi_cli")
 
                     if raw_models:
                         models = _apply_provider_prefix(raw_models, pid, active_provider)
@@ -2226,7 +2226,7 @@ _SETTINGS_DEFAULTS = {
     "font_size": "default",  # small | default | large
     "language": "en",  # UI locale code; must match a key in static/i18n.js LOCALES
     "bot_name": os.getenv(
-        "HERMES_WEBUI_BOT_NAME", "Hermes"
+        "AVOI_WEBUI_BOT_NAME", "AVOI"
     ),  # display name for the assistant
     "sound_enabled": False,  # play notification sound when assistant finishes
     "notifications_enabled": False,  # browser notification when tab is in background
@@ -2421,7 +2421,7 @@ def save_settings(settings: dict) -> dict:
 
 
 # Apply saved settings on startup (override env-derived defaults)
-# Exception: if HERMES_WEBUI_DEFAULT_WORKSPACE is explicitly set in the
+# Exception: if AVOI_WEBUI_DEFAULT_WORKSPACE is explicitly set in the
 # environment, it wins over whatever settings.json has stored.  Persisted
 # config must never shadow an explicit env-var override (Docker deployments
 # rely on this — otherwise deleting settings.json is the only escape).
@@ -2431,7 +2431,7 @@ try:
 except OSError:
     _settings_file_exists = False
 if _settings_file_exists:
-    if not os.getenv("HERMES_WEBUI_DEFAULT_WORKSPACE"):
+    if not os.getenv("AVOI_WEBUI_DEFAULT_WORKSPACE"):
         DEFAULT_WORKSPACE = resolve_default_workspace(
             _startup_settings.get("default_workspace")
         )
@@ -2456,4 +2456,4 @@ try:
 
     init_profile_state()
 except ImportError:
-    pass  # hermes_cli not available -- default profile only
+    pass  # avoi_cli not available -- default profile only

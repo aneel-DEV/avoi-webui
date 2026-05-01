@@ -1,4 +1,4 @@
-"""Hermes Web UI -- startup helpers."""
+"""AVOI Web UI -- startup helpers."""
 from __future__ import annotations
 import os, stat, subprocess, sys
 from pathlib import Path
@@ -14,12 +14,12 @@ _SENSITIVE_FILES = (
 
 
 def fix_credential_permissions() -> None:
-    """Ensure sensitive files in HERMES_HOME are chmod 600 (owner-only)."""
-    hermes_home = Path(os.environ.get('HERMES_HOME', str(Path.home() / '.hermes')))
-    if not hermes_home.is_dir():
+    """Ensure sensitive files in AVOI_HOME are chmod 600 (owner-only)."""
+    avoi_home = Path(os.environ.get('AVOI_HOME', str(Path.home() / '.avoi')))
+    if not avoi_home.is_dir():
         return
     for name in _SENSITIVE_FILES:
-        fpath = hermes_home / name
+        fpath = avoi_home / name
         if not fpath.exists():
             continue
         try:
@@ -32,8 +32,8 @@ def fix_credential_permissions() -> None:
 
 
 def _agent_dir() -> Path | None:
-    hermes_home = Path(os.environ.get('HERMES_HOME', str(Path.home() / '.hermes')))
-    for raw in [os.environ.get('HERMES_WEBUI_AGENT_DIR', '').strip(), str(hermes_home / 'hermes-agent')]:
+    avoi_home = Path(os.environ.get('AVOI_HOME', str(Path.home() / '.avoi')))
+    for raw in [os.environ.get('AVOI_WEBUI_AGENT_DIR', '').strip(), str(avoi_home / 'avoi-agent')]:
         if not raw:
             continue
         p = Path(raw).expanduser()
@@ -48,8 +48,8 @@ def _trusted_agent_dir(agent_dir: Path) -> bool:
     on POSIX systems, is owned by the current process user.
 
     Intentionally does NOT enforce a canonical path (i.e. does not require
-    the dir to be ~/.hermes/hermes-agent), so custom HERMES_WEBUI_AGENT_DIR
-    paths work correctly when HERMES_WEBUI_AUTO_INSTALL=1 is set.
+    the dir to be ~/.avoi/avoi-agent), so custom AVOI_WEBUI_AGENT_DIR
+    paths work correctly when AVOI_WEBUI_AUTO_INSTALL=1 is set.
     """
     try:
         st = agent_dir.stat()
@@ -65,9 +65,9 @@ def _trusted_agent_dir(agent_dir: Path) -> bool:
 
 
 def auto_install_agent_deps() -> bool:
-    enabled = os.environ.get('HERMES_WEBUI_AUTO_INSTALL', '').strip().lower() in ('1', 'true', 'yes')
+    enabled = os.environ.get('AVOI_WEBUI_AUTO_INSTALL', '').strip().lower() in ('1', 'true', 'yes')
     if not enabled:
-        print('[!!] Auto-install disabled. Set HERMES_WEBUI_AUTO_INSTALL=1 to enable.', flush=True)
+        print('[!!] Auto-install disabled. Set AVOI_WEBUI_AUTO_INSTALL=1 to enable.', flush=True)
         return False
     agent_dir = _agent_dir()
     if agent_dir is None:

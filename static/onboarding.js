@@ -110,12 +110,12 @@ function _renderOnboardingBody(){
   if(nextBtn) nextBtn.textContent=key==='finish'?t('onboarding_open'):t('onboarding_continue');
 
   if(key==='system'){
-    const hermesOk=system.hermes_found&&system.imports_ok;
+    const avoiOk=system.avoi_found&&system.imports_ok;
     const setupOk=!!system.chat_ready;
-    _setOnboardingNotice(system.provider_note|| (setupOk?t('onboarding_notice_system_ready'):t('onboarding_notice_system_unavailable')),setupOk?'success':(hermesOk?'info':'warn'));
+    _setOnboardingNotice(system.provider_note|| (setupOk?t('onboarding_notice_system_ready'):t('onboarding_notice_system_unavailable')),setupOk?'success':(avoiOk?'info':'warn'));
     body.innerHTML=`
       <div class="onboarding-panel-grid">
-        <div class="onboarding-check ${hermesOk?'ok':'warn'}"><strong>${t('onboarding_check_agent')}</strong><span>${hermesOk?t('onboarding_check_agent_ready'):t('onboarding_check_agent_missing')}</span></div>
+        <div class="onboarding-check ${avoiOk?'ok':'warn'}"><strong>${t('onboarding_check_agent')}</strong><span>${avoiOk?t('onboarding_check_agent_ready'):t('onboarding_check_agent_missing')}</span></div>
         <div class="onboarding-check ${(setupOk?'ok':system.provider_configured?'warn':'muted')}"><strong>${t('onboarding_check_provider')}</strong><span>${_providerStatusLabel(system)}</span></div>
         <div class="onboarding-check ${(settings.password_enabled?'ok':'muted')}"><strong>${t('onboarding_check_password')}</strong><span>${settings.password_enabled?t('onboarding_check_password_enabled'):t('onboarding_check_password_disabled')}</span></div>
       </div>
@@ -348,7 +348,7 @@ async function _saveOnboardingDefaults(){
   if(ONBOARDING.status){
     ONBOARDING.status.settings={...(ONBOARDING.status.settings||{}),password_enabled:!!saved.auth_enabled};
   }
-  localStorage.setItem('hermes-webui-model',model);
+  localStorage.setItem('avoi-webui-model',model);
   if($('modelSelect')) _applyModelToDropdown(model,$('modelSelect'));
 }
 

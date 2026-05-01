@@ -200,7 +200,7 @@ function cliOnlyCommandResponse(cmdName, meta){
   if(name==='browser'){
     extra='\n\nBrowser tools in WebUI must be configured server-side with the agent/browser environment. Once configured, ask the model to use browser tools directly; `/browser` itself only works in `hermes chat`.';
   }
-  return `\`/${name}\` is a Hermes CLI-only command and cannot run inside the WebUI.${detail}${extra}`;
+  return `\`/${name}\` is a AVOI CLI-only command and cannot run inside the WebUI.${detail}${extra}`;
 }
 
 function _parseSlashAutocomplete(text){
@@ -396,7 +396,7 @@ async function _runManualCompression(focusTopic){
         S.messages=data.session.messages||[];
         S.toolCalls=data.session.tool_calls||[];
         clearLiveToolCards();
-        localStorage.setItem('hermes-webui-session',S.session.session_id);
+        localStorage.setItem('avoi-webui-session',S.session.session_id);
         syncTopbar();
         renderMessages();
         await renderSessionList();
@@ -481,10 +481,10 @@ async function cmdTheme(args){
   if(themes.includes(val)||legacyThemes.includes(val)){
     const appearance=_normalizeAppearance(
       val,
-      legacyThemes.includes(val)?null:localStorage.getItem('hermes-skin')
+      legacyThemes.includes(val)?null:localStorage.getItem('avoi-skin')
     );
-    localStorage.setItem('hermes-theme',appearance.theme);
-    localStorage.setItem('hermes-skin',appearance.skin);
+    localStorage.setItem('avoi-theme',appearance.theme);
+    localStorage.setItem('avoi-skin',appearance.skin);
     _applyTheme(appearance.theme);
     _applySkin(appearance.skin);
     try{await api('/api/settings',{method:'POST',body:JSON.stringify({theme:appearance.theme,skin:appearance.skin})});}catch(e){}
@@ -499,9 +499,9 @@ async function cmdTheme(args){
   }
   // Check if it's a skin
   if(skins.includes(val)){
-    const appearance=_normalizeAppearance(localStorage.getItem('hermes-theme'),val);
-    localStorage.setItem('hermes-theme',appearance.theme);
-    localStorage.setItem('hermes-skin',appearance.skin);
+    const appearance=_normalizeAppearance(localStorage.getItem('avoi-theme'),val);
+    localStorage.setItem('avoi-theme',appearance.theme);
+    localStorage.setItem('avoi-skin',appearance.skin);
     _applyTheme(appearance.theme);
     _applySkin(appearance.skin);
     try{await api('/api/settings',{method:'POST',body:JSON.stringify({theme:appearance.theme,skin:appearance.skin})});}catch(e){}
@@ -811,7 +811,7 @@ async function cmdStatus(){
       `**${t('status_title')}:** ${r.title||t('untitled')}`,
       `**${t('status_model')}:** ${r.model||t('usage_default_model')}${provider?'  ('+provider+')':''}`,
       `**${t('status_profile')}:** ${profile}`,
-      `**${t('status_hermes_home')}:** ${r.hermes_home||t('status_unknown')}`,
+      `**${t('status_avoi_home')}:** ${r.avoi_home||t('status_unknown')}`,
       `**${t('status_workspace')}:** ${r.workspace}`,
       `**${t('status_personality')}:** ${r.personality||t('usage_personality_none')}`,
       `**${t('status_started')}:** ${started}`,
@@ -826,7 +826,7 @@ async function cmdStatus(){
 function cmdReasoning(args){
   const arg=(args||'').trim().toLowerCase();
   const BRAIN='\uD83E\uDDE0';
-  // Matches hermes_constants.VALID_REASONING_EFFORTS + 'none' (CLI parity).
+  // Matches avoi_constants.VALID_REASONING_EFFORTS + 'none' (CLI parity).
   const EFFORTS=['none','minimal','low','medium','high','xhigh'];
   // Shared status renderer used by the no-args branch and as a fallback.
   function _fmtStatus(st){
